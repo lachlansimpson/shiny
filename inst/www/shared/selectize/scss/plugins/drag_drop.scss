@@ -1,19 +1,15 @@
-.#{$selectize}-control.plugin-drag_drop {
-  &.multi > .#{$selectize}-input.dragging {
+.ts-wrapper.plugin-drag_drop {
+  &.multi > .ts-control.dragging {
     overflow: visible;
   }
-  &.multi > .#{$selectize}-input > div.ui-sortable-placeholder {
-    visibility: visible !important;
-    background: #f2f2f2 !important;
-    background: rgba(0, 0, 0, 0.06) !important;
-    border: 0 none !important;
-    box-shadow: inset 0 0 12px 4px #fff;
+
+  .ts-drag-over {
+    outline: 2px dashed $select-color-border;
+    border-radius: $select-border-radius;
   }
-  .ui-sortable-placeholder::after {
-    content: "!";
-    visibility: hidden;
-  }
-  .ui-sortable-helper {
+
+  .ts-dragging {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    opacity: 0.8;
   }
 }

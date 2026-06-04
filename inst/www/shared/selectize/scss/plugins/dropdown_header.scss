@@ -1,5 +1,5 @@
-.#{$selectize}-dropdown.plugin-dropdown_header {
-  .#{$selectize}-dropdown-header {
+.ts-dropdown.plugin-dropdown_header {
+  .ts-dropdown-header {
     position: relative;
     padding: ($select-padding-dropdown-item-y * 2)
       $select-padding-dropdown-item-x;
@@ -7,7 +7,7 @@
     background: RGBA($select-color-dropdown, 0.15);
     border-radius: $select-border-radius $select-border-radius 0 0;
   }
-  .#{$selectize}-dropdown-header-close {
+  .ts-dropdown-header-close {
     position: absolute;
     right: $select-padding-dropdown-item-x;
     top: 50%;
@@ -18,7 +18,7 @@
     font-size: 20px !important;
     text-decoration: none;
   }
-  .#{$selectize}-dropdown-header-close:hover {
+  .ts-dropdown-header-close:hover {
     color: RGB($select-color-rgb);
   }
 }
