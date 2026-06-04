@@ -25,13 +25,9 @@ class TextInputBindingBase extends InputBinding {
     const $inputs = $(scope).find(
       'input[type="text"], input[type="search"], input[type="url"], input[type="email"]',
     );
-    // selectize.js 0.12.4 inserts a hidden text input with an
-    // id that ends in '-selectized'. The .not() selector below
-    // is to prevent textInputBinding from accidentally picking up
-    // this hidden element as a shiny input (#2396)
-    //
-    // Inputs also now have .shiny-input-text class
-    return $inputs.not('input[type="text"][id$="-selectized"]');
+    // tom-select inserts a focus <input> with id ending in '-ts-control'.
+    // Exclude it so Shiny does not treat it as a text input binding (#2396).
+    return $inputs.not('input[id$="-ts-control"]');
   }
 
   getId(el: TextHTMLElement): string {
