@@ -209,18 +209,13 @@ selectizeIt <- function(inputId, select, options, nonempty = FALSE) {
     options <- empty_named_list()
   }
 
-  # Make sure accessibility plugin is included
-  if (!('selectize-plugin-a11y' %in% options$plugins)) {
-    options$plugins <- c(options$plugins, list('selectize-plugin-a11y'))
-  }
+  # tom-select has built-in ARIA accessibility; silently remove the legacy
+  # a11y plugin name if a user passed it to prevent a runtime error
+  options$plugins <- setdiff(options$plugins, "selectize-plugin-a11y")
 
   res <- checkAsIs(options)
 
   deps <- list(selectizeDependency())
-
-  if ('drag_drop' %in% options$plugins) {
-    deps[[length(deps) + 1]] <- jqueryuiDependency()
-  }
 
   # Insert script on same level as <select> tag
   select$children[[2]] <- tagAppendChild(
@@ -289,13 +284,7 @@ selectizeStaticDependency <- function(version) {
 
 selectizeScripts <- function() {
   isMinified <- isTRUE(get_devmode_option("shiny.minified", TRUE))
-  paste0(
-    c(
-      "js/selectize",
-      "accessibility/js/selectize-plugin-a11y"
-    ),
-    if (isMinified) ".min.js" else ".js"
-  )
+  paste0("js/tom-select.complete", if (isMinified) ".min.js" else ".js")
 }
 
 
