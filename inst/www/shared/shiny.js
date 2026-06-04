@@ -2087,7 +2087,7 @@
       const $inputs = (0, import_jquery15.default)(scope).find(
         'input[type="text"], input[type="search"], input[type="url"], input[type="email"]'
       );
-      return $inputs.not('input[type="text"][id$="-selectized"]');
+      return $inputs.not('input[id$="-ts-control"]');
     }
     getId(el) {
       return super.getId(el) || el.name;
@@ -2311,16 +2311,16 @@
   var indirectEval = eval;
 
   // srcts/src/bindings/input/selectInput.ts
-  function getLabelNode6(el) {
-    let escapedId = $escape(el.id);
-    if (isSelectize(el)) {
-      escapedId += "-selectized";
-    }
-    return (0, import_jquery19.default)(el).parent().parent().find('label[for="' + escapedId + '"]');
-  }
-  function isSelectize(el) {
+  function isTomSelect(el) {
     const config = (0, import_jquery19.default)(el).parent().find('script[data-for="' + $escape(el.id) + '"]');
     return config.length > 0;
+  }
+  function getLabelNode6(el) {
+    let escapedId = $escape(el.id);
+    if (isTomSelect(el)) {
+      escapedId += "-ts-control";
+    }
+    return (0, import_jquery19.default)(el).parent().parent().find('label[for="' + escapedId + '"]');
   }
   var SelectInputBinding = class extends InputBinding {
     find(scope) {
@@ -2341,19 +2341,17 @@
       return InputBinding.prototype.getId.call(this, el) || el.name;
     }
     getValue(el) {
-      if (!isSelectize(el)) {
+      if (!isTomSelect(el)) {
         return (0, import_jquery19.default)(el).val();
       } else {
-        const selectize = this._selectize(el);
-        return selectize?.getValue();
+        return el.tomselect?.getValue();
       }
     }
     setValue(el, value) {
-      if (!isSelectize(el)) {
+      if (!isTomSelect(el)) {
         (0, import_jquery19.default)(el).val(value);
       } else {
-        const selectize = this._selectize(el);
-        selectize?.setValue(value);
+        el.tomselect?.setValue(value);
       }
     }
     getState(el) {
@@ -2362,7 +2360,6 @@
       );
       for (let i5 = 0; i5 < el.length; i5++) {
         options[i5] = {
-          // TODO-barret; Is this a safe assumption?; Are there no Option Groups?
           value: el[i5].value,
           label: el[i5].label
         };
@@ -2376,58 +2373,55 @@
     async receiveMessage(el, data) {
       const $el = (0, import_jquery19.default)(el);
       if (hasDefinedProperty(data, "options")) {
-        const selectize = this._selectize(el);
-        selectize?.destroy();
+        el.tomselect?.destroy();
         $el.empty().append(data.options);
-        this._selectize(el);
+        this._initTomSelect(el);
       }
       if (hasDefinedProperty(data, "config")) {
         $el.parent().find('script[data-for="' + $escape(el.id) + '"]').replaceWith(data.config);
-        this._selectize(el, true);
+        this._initTomSelect(el, true);
       }
       if (hasDefinedProperty(data, "url")) {
-        const selectize = this._selectize(el);
-        selectize.clear();
-        selectize.clearOptions();
-        let loaded = false;
-        selectize.settings.load = function(query, callback) {
-          const settings = selectize.settings;
-          import_jquery19.default.ajax({
-            url: data.url,
-            data: {
-              query,
-              field: JSON.stringify([settings.searchField]),
-              value: settings.valueField,
-              conju: settings.searchConjunction,
-              maxop: settings.maxOptions
-            },
-            type: "GET",
-            error: function() {
-              callback();
-            },
-            success: function(res) {
-              import_jquery19.default.each(res, function(index, elem) {
-                const optgroupId = elem[settings.optgroupField || "optgroup"];
-                const optgroup = {};
-                optgroup[settings.optgroupLabelField || "label"] = optgroupId;
-                optgroup[settings.optgroupValueField || "value"] = optgroupId;
-                selectize.addOptionGroup(optgroupId, optgroup);
-              });
-              callback(res);
-              if (!loaded) {
+        const ts = this._initTomSelect(el);
+        if (ts) {
+          ts.clear();
+          ts.clearOptions();
+          ts.settings.load = function(query, callback) {
+            const settings = ts.settings;
+            import_jquery19.default.ajax({
+              url: data.url,
+              data: {
+                query,
+                field: JSON.stringify([settings.searchField]),
+                value: settings.valueField,
+                conju: settings.searchConjunction,
+                maxop: settings.maxOptions
+              },
+              type: "GET",
+              error: function() {
+                callback();
+              },
+              success: function(res) {
+                res.forEach(function(elem) {
+                  const optgroupId = elem[settings.optgroupField ?? "optgroup"];
+                  if (optgroupId) {
+                    const optgroup = {};
+                    optgroup[settings.optgroupLabelField ?? "label"] = optgroupId;
+                    optgroup[settings.optgroupValueField ?? "value"] = optgroupId;
+                    ts.addOptionGroup(optgroupId, optgroup);
+                  }
+                });
+                callback(res);
                 if (hasDefinedProperty(data, "value")) {
-                  selectize.setValue(data.value);
-                } else if (settings.maxItems === 1) {
-                  selectize.setValue(res[0].value);
+                  ts.setValue(data.value);
+                } else if (settings.maxItems === 1 && res.length > 0) {
+                  ts.setValue(res[0][settings.valueField]);
                 }
               }
-              loaded = true;
-            }
-          });
-        };
-        selectize.load(function(callback) {
-          selectize.settings.load.apply(selectize, ["", callback]);
-        });
+            });
+          };
+          ts.load("");
+        }
       } else if (hasDefinedProperty(data, "value")) {
         this.setValue(el, data.value);
       }
@@ -2435,74 +2429,84 @@
       (0, import_jquery19.default)(el).trigger("change");
     }
     subscribe(el, callback) {
-      (0, import_jquery19.default)(el).on(
-        "change.selectInputBinding",
-        // event: Event
-        () => {
-          if (el.nonempty && this.getValue(el) === "") {
-            return;
-          }
-          callback(false);
+      (0, import_jquery19.default)(el).on("change.selectInputBinding", () => {
+        if (el.nonempty && this.getValue(el) === "") {
+          return;
         }
-      );
+        callback(false);
+      });
     }
     unsubscribe(el) {
       (0, import_jquery19.default)(el).off(".selectInputBinding");
     }
     initialize(el) {
-      this._selectize(el);
+      this._initTomSelect(el);
     }
-    _selectize(el, update = false) {
-      if (!import_jquery19.default.fn.selectize) return void 0;
+    _initTomSelect(el, update = false) {
+      const TomSelectCtor = window["TomSelect"];
+      if (typeof TomSelectCtor === "undefined") return void 0;
       const $el = (0, import_jquery19.default)(el);
       const config = $el.parent().find('script[data-for="' + $escape(el.id) + '"]');
       if (config.length === 0) return void 0;
-      let options = import_jquery19.default.extend(
+      if (el.tomselect) {
+        if (!update) return el.tomselect;
+        el.tomselect.destroy();
+      }
+      let options = Object.assign(
         {
           labelField: "label",
           valueField: "value",
-          searchField: ["label"]
+          searchField: ["label"],
+          selectOnTab: false
         },
         JSON.parse(config.html())
       );
       options = this._addShinyRemoveButton(options, el.hasAttribute("multiple"));
       if (typeof config.data("nonempty") !== "undefined") {
         el.nonempty = true;
-        options = import_jquery19.default.extend(options, {
-          onItemRemove: function(value) {
-            if (this.getValue() === "")
-              (0, import_jquery19.default)("select#" + $escape(el.id)).empty().append(
-                (0, import_jquery19.default)("<option/>", {
-                  value,
-                  selected: true
-                })
-              ).trigger("change");
-          },
-          onDropdownClose: (
-            // $dropdown: any
-            function() {
-              if (this.getValue() === "") {
-                this.setValue((0, import_jquery19.default)("select#" + $escape(el.id)).val());
-              }
-            }
-          )
-        });
+        const existingOnItemRemove = options.onItemRemove;
+        options.onItemRemove = function(value) {
+          if (existingOnItemRemove) existingOnItemRemove.call(this, value);
+          if (this.getValue() === "") {
+            (0, import_jquery19.default)("select#" + $escape(el.id)).empty().append(
+              (0, import_jquery19.default)("<option/>", {
+                value,
+                selected: true
+              })
+            ).trigger("change");
+          }
+        };
+        const existingOnDropdownClose = options.onDropdownClose;
+        options.onDropdownClose = function(dropdown) {
+          if (existingOnDropdownClose)
+            existingOnDropdownClose.call(this, dropdown);
+          if (this.getValue() === "") {
+            this.setValue(
+              (0, import_jquery19.default)("select#" + $escape(el.id)).val()
+            );
+          }
+        };
       } else {
         el.nonempty = false;
       }
       if (config.data("eval") instanceof Array)
-        import_jquery19.default.each(config.data("eval"), function(i5, x2) {
-          options[x2] = indirectEval("(" + options[x2] + ")");
+        config.data("eval").forEach((x2) => {
+          options[x2] = indirectEval(
+            "(" + options[x2] + ")"
+          );
         });
-      let control = $el.selectize(options)[0].selectize;
-      if (update) {
-        const settings = import_jquery19.default.extend(control.settings, options);
-        control.destroy();
-        control = $el.selectize(settings)[0].selectize;
-      }
-      return control;
+      const existingOnInit = options.onInitialize;
+      options.onInitialize = function() {
+        if (existingOnInit) existingOnInit.call(this);
+        this.wrapper.classList.add("selectize-control");
+        this.control.classList.add("selectize-input");
+        this.dropdown.classList.add("selectize-dropdown");
+        this.dropdown_content.classList.add("selectize-dropdown-content");
+      };
+      const ts = new TomSelectCtor(el, options);
+      return ts;
     }
-    // Translate shinyRemoveButton option into selectize plugins
+    // Translate shinyRemoveButton option into tom-select plugin names
     _addShinyRemoveButton(options, multiple) {
       let removeButton = options.shinyRemoveButton;
       if (removeButton === void 0) {

@@ -41,11 +41,12 @@ type TomSelectInstance = {
   destroy(): void;
   clear(): void;
   clearOptions(): void;
-  addOptionGroup(id: string, data: Record<string, string>): void;
+  addOptionGroup(id: string, data: { [key: string]: string }): void;
   load(value: string): void;
   wrapper: HTMLElement;
   control: HTMLElement;
   dropdown: HTMLElement;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   dropdown_content: HTMLElement;
 };
 
@@ -73,7 +74,10 @@ function getLabelNode(el: SelectHTMLElement): JQuery<HTMLElement> {
   if (isTomSelect(el)) {
     escapedId += "-ts-control";
   }
-  return $(el).parent().parent().find('label[for="' + escapedId + '"]');
+  return $(el)
+    .parent()
+    .parent()
+    .find('label[for="' + escapedId + '"]');
 }
 
 class SelectInputBinding extends InputBinding {
@@ -186,17 +190,14 @@ class SelectInputBinding extends InputBinding {
             error: function () {
               callback();
             },
-            success: function (res: Array<Record<string, string>>) {
+            success: function (res: Array<{ [key: string]: string }>) {
               res.forEach(function (elem) {
-                const optgroupId =
-                  elem[settings.optgroupField ?? "optgroup"];
+                const optgroupId = elem[settings.optgroupField ?? "optgroup"];
                 if (optgroupId) {
-                  const optgroup: Record<string, string> = {};
+                  const optgroup: { [key: string]: string } = {};
 
-                  optgroup[settings.optgroupLabelField ?? "label"] =
-                    optgroupId;
-                  optgroup[settings.optgroupValueField ?? "value"] =
-                    optgroupId;
+                  optgroup[settings.optgroupLabelField ?? "label"] = optgroupId;
+                  optgroup[settings.optgroupValueField ?? "value"] = optgroupId;
                   ts.addOptionGroup(optgroupId, optgroup);
                 }
               });
@@ -224,16 +225,13 @@ class SelectInputBinding extends InputBinding {
   }
 
   subscribe(el: SelectHTMLElement, callback: (x: boolean) => void): void {
-    $(el).on(
-      "change.selectInputBinding",
-      () => {
-        // https://github.com/rstudio/shiny/issues/2162
-        if (el.nonempty && this.getValue(el) === "") {
-          return;
-        }
-        callback(false);
-      },
-    );
+    $(el).on("change.selectInputBinding", () => {
+      // https://github.com/rstudio/shiny/issues/2162
+      if (el.nonempty && this.getValue(el) === "") {
+        return;
+      }
+      callback(false);
+    });
   }
 
   unsubscribe(el: HTMLElement): void {
@@ -249,14 +247,17 @@ class SelectInputBinding extends InputBinding {
     update = false,
   ): TomSelectInstance | undefined {
     // Apps like 008-html that don't load the tom-select JS are safe-guarded here.
-    const win = window as unknown as {
-      TomSelect?: new (
-        el: HTMLSelectElement,
-        opts: TomSelectSettings,
-      ) => TomSelectInstance;
-    };
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const TomSelectCtor = (window as unknown as { [key: string]: unknown })[
+      "TomSelect"
+    ] as
+      | (new (
+          el: HTMLSelectElement,
+          opts: TomSelectSettings,
+        ) => TomSelectInstance)
+      | undefined;
 
-    if (typeof win.TomSelect === "undefined") return undefined;
+    if (typeof TomSelectCtor === "undefined") return undefined;
 
     const $el = $(el);
     const config = $el
@@ -287,10 +288,7 @@ class SelectInputBinding extends InputBinding {
       el.nonempty = true;
       const existingOnItemRemove = options.onItemRemove;
 
-      options.onItemRemove = function (
-        this: TomSelectInstance,
-        value: string,
-      ) {
+      options.onItemRemove = function (this: TomSelectInstance, value: string) {
         if (existingOnItemRemove) existingOnItemRemove.call(this, value);
         if ((this as TomSelectInstance).getValue() === "") {
           $("select#" + $escape(el.id))
@@ -326,8 +324,8 @@ class SelectInputBinding extends InputBinding {
     // eval-able options (e.g. render functions, onChange callbacks set via I())
     if (config.data("eval") instanceof Array)
       (config.data("eval") as string[]).forEach((x: string) => {
-        (options as Record<string, unknown>)[x] = indirectEval(
-          "(" + (options as Record<string, unknown>)[x] + ")",
+        (options as { [key: string]: unknown })[x] = indirectEval(
+          "(" + (options as { [key: string]: unknown })[x] + ")",
         );
       });
 
@@ -344,7 +342,7 @@ class SelectInputBinding extends InputBinding {
       this.dropdown_content.classList.add("selectize-dropdown-content");
     };
 
-    const ts = new win.TomSelect(el, options);
+    const ts = new TomSelectCtor(el, options);
 
     return ts;
   }

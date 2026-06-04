@@ -1,6 +1,41 @@
 import { InputBinding } from "./inputBinding";
 type SelectHTMLElement = HTMLSelectElement & {
     nonempty: boolean;
+    tomselect?: TomSelectInstance;
+};
+type TomSelectSettings = {
+    labelField: string;
+    valueField: string;
+    searchField: string[];
+    optgroupField?: string;
+    optgroupLabelField?: string;
+    optgroupValueField?: string;
+    searchConjunction?: string;
+    maxOptions?: number;
+    maxItems?: number | null;
+    selectOnTab?: boolean;
+    plugins?: string[];
+    load?: (query: string, callback: (results?: unknown[]) => void) => void;
+    onInitialize?: (this: TomSelectInstance) => void;
+    onItemRemove?: (this: TomSelectInstance, value: string) => void;
+    onDropdownClose?: (this: TomSelectInstance, dropdown: HTMLElement) => void;
+    [key: string]: unknown;
+};
+type TomSelectInstance = {
+    settings: TomSelectSettings;
+    getValue(): string | string[];
+    setValue(value: string | string[]): void;
+    destroy(): void;
+    clear(): void;
+    clearOptions(): void;
+    addOptionGroup(id: string, data: {
+        [key: string]: string;
+    }): void;
+    load(value: string): void;
+    wrapper: HTMLElement;
+    control: HTMLElement;
+    dropdown: HTMLElement;
+    dropdown_content: HTMLElement;
 };
 type SelectInputReceiveMessageData = {
     label: string;
@@ -9,14 +44,11 @@ type SelectInputReceiveMessageData = {
     url?: string;
     value?: string;
 };
-type SelectizeInfo = Selectize.IApi<string, unknown> & {
-    settings: Selectize.IOptions<string, unknown>;
-};
 declare class SelectInputBinding extends InputBinding {
     find(scope: HTMLElement): JQuery<HTMLElement>;
     getType(el: HTMLElement): string | null;
     getId(el: SelectHTMLElement): string;
-    getValue(el: SelectHTMLElement): any;
+    getValue(el: SelectHTMLElement): unknown;
     setValue(el: SelectHTMLElement, value: string): void;
     getState(el: SelectHTMLElement): {
         label: JQuery<HTMLElement>;
@@ -30,7 +62,7 @@ declare class SelectInputBinding extends InputBinding {
     subscribe(el: SelectHTMLElement, callback: (x: boolean) => void): void;
     unsubscribe(el: HTMLElement): void;
     initialize(el: SelectHTMLElement): void;
-    protected _selectize(el: SelectHTMLElement, update?: boolean): SelectizeInfo | undefined;
+    protected _initTomSelect(el: SelectHTMLElement, update?: boolean): TomSelectInstance | undefined;
     private _addShinyRemoveButton;
 }
 export { SelectInputBinding };
