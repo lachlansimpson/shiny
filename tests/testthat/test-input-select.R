@@ -37,8 +37,10 @@ test_that("performance warning works", {
 test_that("jqueryui is NOT attached when drag_drop plugin is present (tom-select uses native DnD)", {
   x <- selectizeInput("test", "test", choices = 1:3, multiple = TRUE, options = list(plugins = "drag_drop"))
   deps <- htmltools::resolveDependencies(htmltools::htmlDependencies(x))
+  dep_names <- vapply(deps, `[[`, character(1), "name")
   expect_length(deps, 1)
-  expect_equal(deps[[1]]$name, "selectize")
+  expect_false("jqueryui" %in% dep_names)
+  expect_true("selectize" %in% dep_names)
 })
 
 
@@ -97,15 +99,6 @@ test_that("selectInputUI has a select at an expected location", {
 })
 
 # --- tom-select migration tests ---
-
-test_that("drag_drop plugin no longer requires jqueryui (tom-select uses native DnD)", {
-  x <- selectizeInput("test", "test", choices = 1:3, multiple = TRUE,
-                      options = list(plugins = "drag_drop"))
-  deps <- htmltools::resolveDependencies(htmltools::htmlDependencies(x))
-  dep_names <- vapply(deps, `[[`, character(1), "name")
-  expect_false("jqueryui" %in% dep_names)
-  expect_true("selectize" %in% dep_names)
-})
 
 test_that("selectize-plugin-a11y is silently stripped from user-supplied plugins", {
   x <- selectizeInput("test", "test", choices = 1:3,
