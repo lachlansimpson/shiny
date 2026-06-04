@@ -48,8 +48,8 @@ $select-arrow-offset: $select-padding-x + 5px;
 
 @import "selectize";
 
-.#{$selectize}-dropdown,
-.#{$selectize}-dropdown.form-control {
+.ts-dropdown,
+.ts-dropdown.form-control {
   height: auto;
   padding: 0;
   margin: 2px 0 0 0;
@@ -61,7 +61,7 @@ $select-arrow-offset: $select-padding-x + 5px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
 }
 
-.#{$selectize}-dropdown {
+.ts-dropdown {
   .optgroup-header {
     font-size: $font-size-small;
     line-height: $line-height-base;
@@ -78,15 +78,15 @@ $select-arrow-offset: $select-padding-x + 5px;
   }
 }
 
-.#{$selectize}-dropdown-content {
+.ts-dropdown-content {
   padding: 5px 0;
 }
 
-.#{$selectize}-dropdown-emptyoptionlabel {
+.ts-dropdown-emptyoptionlabel {
 	text-align: center;
 }
 
-.#{$selectize}-input {
+.ts-control {
   min-height: $input-height-base;
 
   &.dropdown-active {
@@ -104,7 +104,7 @@ $select-arrow-offset: $select-padding-x + 5px;
   }
 }
 
-.has-error .#{$selectize}-input {
+.has-error .ts-control {
   border-color: $select-color-input-error;
   box-shadow: $select-shadow-input-error;
 
@@ -114,19 +114,19 @@ $select-arrow-offset: $select-padding-x + 5px;
   }
 }
 
-.#{$selectize}-control {
+.ts-wrapper {
   &.multi {
-    .#{$selectize}-input.has-items {
+    .ts-control.has-items {
       padding-left: $select-padding-x - $select-padding-item-x;
       padding-right: $select-padding-x - $select-padding-item-x;
     }
-    .#{$selectize}-input > div {
+    .ts-control > div {
       border-radius: $select-border-radius - 1px;
     }
   }
 }
 
-.form-control.#{$selectize}-control {
+.form-control.ts-wrapper {
   padding: 0;
   height: auto;
   border: none;
