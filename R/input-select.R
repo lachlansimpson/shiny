@@ -4,7 +4,7 @@
 #' from a list of values.
 #'
 #' By default, `selectInput()` and `selectizeInput()` use the JavaScript library
-#' \pkg{selectize.js} (<https://selectize.dev/>) instead of
+#' \pkg{tom-select} (<https://tom-select.js.org/>) instead of
 #' the basic select input element. To use the standard HTML select input
 #' element, use `selectInput()` with `selectize=FALSE`.
 #'
@@ -32,7 +32,7 @@
 #'   = TRUE`). If not specified then defaults to the first value for
 #'   single-select lists and no values for multiple select lists.
 #' @param multiple Is selection of multiple items allowed?
-#' @param selectize Whether to use \pkg{selectize.js} or not.
+#' @param selectize Whether to use \pkg{tom-select} or not.
 #' @param size Number of items to show in the selection box; a larger number
 #'   will result in a taller box. Not compatible with `selectize=TRUE`.
 #'   Normally, when `multiple=FALSE`, a select input will be a drop-down list,
@@ -173,7 +173,7 @@ needOptgroup <- function(choices) {
 
 #' @rdname selectInput
 #' @param ... Arguments passed to `selectInput()`.
-#' @param options A list of options. See the documentation of \pkg{selectize.js}(<https://selectize.dev/docs/usage>)
+#' @param options A list of options. See the documentation of \pkg{tom-select} (<https://tom-select.js.org/docs/>)
 #'   for possible options (character option values inside [base::I()] will
 #'   be treated as literal JavaScript code; see [renderDataTable()]
 #'   for details).
@@ -182,7 +182,7 @@ needOptgroup <- function(choices) {
 #' @note The selectize input created from `selectizeInput()` allows
 #'   deletion of the selected option even in a single select input, which will
 #'   return an empty string as its value. This is the default behavior of
-#'   \pkg{selectize.js}. However, the selectize input created from
+#'   \pkg{tom-select}. However, the selectize input created from
 #'   `selectInput(..., selectize = TRUE)` will ignore the empty string
 #'   value when it is a single choice input and the empty string is not in the
 #'   `choices` argument. This is to keep compatibility with
@@ -300,8 +300,8 @@ selectizeScripts <- function() {
 #' don't need a symbol, use [selectInput()] instead.
 #'
 #' By default, `varSelectInput()` and `selectizeInput()` use the
-#' JavaScript library \pkg{selectize.js}
-#' (<https://selectize.dev/>) instead of the basic
+#' JavaScript library \pkg{tom-select}
+#' (<https://tom-select.js.org/>) instead of the basic
 #' select input element. To use the standard HTML select input element, use
 #' `selectInput()` with `selectize=FALSE`.
 #'
@@ -397,7 +397,7 @@ varSelectInput <- function(
 
 #' @rdname varSelectInput
 #' @param ... Arguments passed to `varSelectInput()`.
-#' @param options A list of options. See the documentation of \pkg{selectize.js}(<https://selectize.dev/docs/usage>)
+#' @param options A list of options. See the documentation of \pkg{tom-select} (<https://tom-select.js.org/docs/>)
 #'   for possible options (character option values inside [base::I()] will
 #'   be treated as literal JavaScript code; see [renderDataTable()]
 #'   for details).
@@ -406,7 +406,7 @@ varSelectInput <- function(
 #' @note The variable selectize input created from `varSelectizeInput()` allows
 #'   deletion of the selected option even in a single select input, which will
 #'   return an empty string as its value. This is the default behavior of
-#'   \pkg{selectize.js}. However, the selectize input created from
+#'   \pkg{tom-select}. However, the selectize input created from
 #'   `selectInput(..., selectize = TRUE)` will ignore the empty string
 #'   value when it is a single choice input and the empty string is not in the
 #'   `choices` argument. This is to keep compatibility with
