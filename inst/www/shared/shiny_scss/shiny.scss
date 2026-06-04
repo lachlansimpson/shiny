@@ -379,8 +379,10 @@ html.autoreload-enabled #shiny-disconnected-overlay.reloading {
   width: auto;
 }
 
-/* Width of non-tom-select select inputs */
-.shiny-input-container > div > select:not(.tomselected) {
+/* Width of non-tom-select select inputs. Also exclude selectize.js's
+   `.selectized` class: other packages (DT, crosstalk) still bundle selectize.js
+   and their initialized selects should not pick up this width rule. */
+.shiny-input-container > div > select:not(.tomselected):not(.selectized) {
   width: 100%;
 }
 
@@ -482,8 +484,11 @@ textarea.textarea-autoresize.form-control {
 }
 
 // tom-select's remove_button plugin can lead to multiple remove buttons being
-// displayed when options get updated. This prevents that (see #4274 for reprex)
-.shiny-input-select .ts-control > .item > .remove:not(:first-child) {
+// displayed when options get updated. This prevents that (see #4274 for reprex).
+// The `.selectize-input` selector is kept for third-party selectize.js inputs
+// (DT, crosstalk) that may render on the same page.
+.shiny-input-select .ts-control > .item > .remove:not(:first-child),
+.shiny-input-select .selectize-input > .item > .remove:not(:first-child) {
   display: none;
 }
 

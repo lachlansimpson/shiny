@@ -2,6 +2,7 @@ import $ from "jquery";
 import { $escape, hasDefinedProperty, updateLabel } from "../../utils";
 
 import { InputBinding } from "./inputBinding";
+import { selectizeHiddenSuffix, tsControlSuffix } from "./tomSelectConstants";
 
 // interface TextHTMLElement extends NameValueHTMLElement {
 //   placeholder: any;
@@ -27,7 +28,16 @@ class TextInputBindingBase extends InputBinding {
     );
     // tom-select inserts a focus <input> with id ending in '-ts-control'.
     // Exclude it so Shiny does not treat it as a text input binding (#2396).
-    return $inputs.not('input[id$="-ts-control"]');
+    // Also keep excluding selectize.js's '-selectized' hidden input: other
+    // packages (DT, crosstalk) still bundle selectize.js and may render it on
+    // the same page even though Shiny itself no longer uses it.
+    return $inputs.not(
+      'input[id$="' +
+        tsControlSuffix +
+        '"], input[type="text"][id$="' +
+        selectizeHiddenSuffix +
+        '"]',
+    );
   }
 
   getId(el: TextHTMLElement): string {

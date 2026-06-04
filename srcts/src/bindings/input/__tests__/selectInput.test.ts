@@ -1,64 +1,48 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-// Inline the isTomSelect helper logic to test the API contract independently.
-// The real implementation in selectInput.ts checks for a script[data-for] sibling.
-function isTomSelect(el: {
-  id: string;
-  parentElement: Element | null;
-}): boolean {
-  const parentDiv = el.parentElement;
-  if (!parentDiv) return false;
-  return parentDiv.querySelector(`script[data-for="${el.id}"]`) !== null;
-}
+import {
+  selectizeCompatClasses,
+  selectizeHiddenSuffix,
+  tsControlSuffix,
+} from "../tomSelectConstants";
 
-void test("isTomSelect returns false when no config script is present", () => {
-  const parent = {
-    querySelector: () => null,
-  } as unknown as Element;
-  const el = { parentElement: parent, id: "mySelect" };
-  assert.equal(isTomSelect(el), false);
+// These tests pin the migration invariants by asserting against the same
+// constants the production bindings use, so renaming a suffix or class in the
+// binding breaks the test rather than silently passing. DOM-level tests of the
+// jQuery-based find()/init() paths would need a jsdom harness, which this
+// project's node:test runner does not currently set up.
+
+void test("tom-select focus node suffix is shared between bindings", () => {
+  // selectInput.ts (label lookup) and text.ts (exclusion filter) both import
+  // this constant; if it changes, the label-for lookup and the text-binding
+  // exclusion must change together.
+  assert.equal(tsControlSuffix, "-ts-control");
 });
 
-void test("isTomSelect returns true when config script is present", () => {
-  const script = {};
-  const parent = {
-    querySelector: (selector: string) =>
-      selector === 'script[data-for="mySelect"]' ? script : null,
-  } as unknown as Element;
-  const el = { parentElement: parent, id: "mySelect" };
-  assert.equal(isTomSelect(el), true);
+void test("legacy selectize hidden-input suffix is still excluded", () => {
+  // text.ts keeps excluding this so third-party selectize.js inputs (DT,
+  // crosstalk) are not mistaken for Shiny text inputs.
+  assert.equal(selectizeHiddenSuffix, "-selectized");
+  assert.notEqual(selectizeHiddenSuffix, tsControlSuffix);
 });
 
-void test("tom-select focus node id suffix is -ts-control (not -selectized)", () => {
-  // tom-select creates a focus <input> with id = inputId + '-ts-control'.
-  // The text.ts input binding must exclude this to avoid claiming it as a text input.
-  const inputId = "mySelect";
-  const focusNodeId = `${inputId}-ts-control`;
-
-  assert.equal(focusNodeId.endsWith("-ts-control"), true);
-  assert.equal(focusNodeId.endsWith("-selectized"), false);
-});
-
-void test("CSS compat class names are the old selectize class names", () => {
-  // These are the class names the compat shim must add to preserve backwards
-  // compatibility for apps that target .selectize-* in custom CSS.
-  const compatClasses = [
-    "selectize-control",
-    "selectize-input",
-    "selectize-dropdown",
-    "selectize-dropdown-content",
-  ];
+void test("compat shim maps each tom-select element to a legacy selectize class", () => {
+  // Values are the legacy class names existing app CSS may target.
+  assert.deepEqual(selectizeCompatClasses, {
+    wrapper: "selectize-control",
+    control: "selectize-input",
+    dropdown: "selectize-dropdown",
+    dropdownContent: "selectize-dropdown-content",
+  });
+  // Every legacy class is distinct from its tom-select counterpart.
   const tomSelectClasses = [
     "ts-wrapper",
     "ts-control",
     "ts-dropdown",
     "ts-dropdown-content",
   ];
-
-  // Verify the mapping is 1:1 (same count, all old names are distinct from new names)
-  assert.equal(compatClasses.length, tomSelectClasses.length);
-  for (const cls of compatClasses) {
-    assert.equal(tomSelectClasses.includes(cls), false);
+  for (const legacy of Object.values(selectizeCompatClasses)) {
+    assert.equal(tomSelectClasses.includes(legacy), false);
   }
 });

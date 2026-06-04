@@ -2,6 +2,7 @@ import $ from "jquery";
 import { $escape, hasDefinedProperty, updateLabel } from "../../utils";
 import { indirectEval } from "../../utils/eval";
 import { InputBinding } from "./inputBinding";
+import { selectizeCompatClasses, tsControlSuffix } from "./tomSelectConstants";
 
 // tom-select stores the instance on the element after initialisation
 type SelectHTMLElement = HTMLSelectElement & {
@@ -72,7 +73,7 @@ function getLabelNode(el: SelectHTMLElement): JQuery<HTMLElement> {
 
   // tom-select remaps label[for="inputId"] → label[for="inputId-ts-control"]
   if (isTomSelect(el)) {
-    escapedId += "-ts-control";
+    escapedId += tsControlSuffix;
   }
   return $(el)
     .parent()
@@ -170,6 +171,7 @@ class SelectInputBinding extends InputBinding {
       if (ts) {
         ts.clear();
         ts.clearOptions(); // resets loadedSearches cache
+        let loaded = false;
 
         ts.settings.load = function (
           query: string,
@@ -202,10 +204,15 @@ class SelectInputBinding extends InputBinding {
                 }
               });
               callback(res);
-              if (hasDefinedProperty(data, "value")) {
-                ts.setValue(data.value as string);
-              } else if (settings.maxItems === 1 && res.length > 0) {
-                ts.setValue(res[0][settings.valueField]);
+              // Only set the initial value on the first load; otherwise every
+              // user-initiated search would overwrite their selection (#2162).
+              if (!loaded) {
+                if (hasDefinedProperty(data, "value")) {
+                  ts.setValue(data.value as string);
+                } else if (settings.maxItems === 1 && res.length > 0) {
+                  ts.setValue(res[0][settings.valueField]);
+                }
+                loaded = true;
               }
             },
           });
@@ -290,7 +297,7 @@ class SelectInputBinding extends InputBinding {
 
       options.onItemRemove = function (this: TomSelectInstance, value: string) {
         if (existingOnItemRemove) existingOnItemRemove.call(this, value);
-        if ((this as TomSelectInstance).getValue() === "") {
+        if (this.getValue() === "") {
           $("select#" + $escape(el.id))
             .empty()
             .append(
@@ -311,10 +318,8 @@ class SelectInputBinding extends InputBinding {
       ) {
         if (existingOnDropdownClose)
           existingOnDropdownClose.call(this, dropdown);
-        if ((this as TomSelectInstance).getValue() === "") {
-          (this as TomSelectInstance).setValue(
-            $("select#" + $escape(el.id)).val() as string,
-          );
+        if (this.getValue() === "") {
+          this.setValue($("select#" + $escape(el.id)).val() as string);
         }
       };
     } else {
@@ -336,10 +341,12 @@ class SelectInputBinding extends InputBinding {
 
     options.onInitialize = function (this: TomSelectInstance) {
       if (existingOnInit) existingOnInit.call(this);
-      this.wrapper.classList.add("selectize-control");
-      this.control.classList.add("selectize-input");
-      this.dropdown.classList.add("selectize-dropdown");
-      this.dropdown_content.classList.add("selectize-dropdown-content");
+      this.wrapper.classList.add(selectizeCompatClasses.wrapper);
+      this.control.classList.add(selectizeCompatClasses.control);
+      this.dropdown.classList.add(selectizeCompatClasses.dropdown);
+      this.dropdown_content.classList.add(
+        selectizeCompatClasses.dropdownContent,
+      );
     };
 
     const ts = new TomSelectCtor(el, options);

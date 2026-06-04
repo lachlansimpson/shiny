@@ -2079,6 +2079,18 @@
 
   // srcts/src/bindings/input/text.ts
   var import_jquery15 = __toESM(require_jquery());
+
+  // srcts/src/bindings/input/tomSelectConstants.ts
+  var tsControlSuffix = "-ts-control";
+  var selectizeHiddenSuffix = "-selectized";
+  var selectizeCompatClasses = {
+    wrapper: "selectize-control",
+    control: "selectize-input",
+    dropdown: "selectize-dropdown",
+    dropdownContent: "selectize-dropdown-content"
+  };
+
+  // srcts/src/bindings/input/text.ts
   function getLabelNode3(el) {
     return (0, import_jquery15.default)(el).parent().find('label[for="' + $escape(el.id) + '"]');
   }
@@ -2087,7 +2099,9 @@
       const $inputs = (0, import_jquery15.default)(scope).find(
         'input[type="text"], input[type="search"], input[type="url"], input[type="email"]'
       );
-      return $inputs.not('input[id$="-ts-control"]');
+      return $inputs.not(
+        'input[id$="' + tsControlSuffix + '"], input[type="text"][id$="' + selectizeHiddenSuffix + '"]'
+      );
     }
     getId(el) {
       return super.getId(el) || el.name;
@@ -2318,7 +2332,7 @@
   function getLabelNode6(el) {
     let escapedId = $escape(el.id);
     if (isTomSelect(el)) {
-      escapedId += "-ts-control";
+      escapedId += tsControlSuffix;
     }
     return (0, import_jquery19.default)(el).parent().parent().find('label[for="' + escapedId + '"]');
   }
@@ -2386,6 +2400,7 @@
         if (ts) {
           ts.clear();
           ts.clearOptions();
+          let loaded = false;
           ts.settings.load = function(query, callback) {
             const settings = ts.settings;
             import_jquery19.default.ajax({
@@ -2412,10 +2427,13 @@
                   }
                 });
                 callback(res);
-                if (hasDefinedProperty(data, "value")) {
-                  ts.setValue(data.value);
-                } else if (settings.maxItems === 1 && res.length > 0) {
-                  ts.setValue(res[0][settings.valueField]);
+                if (!loaded) {
+                  if (hasDefinedProperty(data, "value")) {
+                    ts.setValue(data.value);
+                  } else if (settings.maxItems === 1 && res.length > 0) {
+                    ts.setValue(res[0][settings.valueField]);
+                  }
+                  loaded = true;
                 }
               }
             });
@@ -2481,9 +2499,7 @@
           if (existingOnDropdownClose)
             existingOnDropdownClose.call(this, dropdown);
           if (this.getValue() === "") {
-            this.setValue(
-              (0, import_jquery19.default)("select#" + $escape(el.id)).val()
-            );
+            this.setValue((0, import_jquery19.default)("select#" + $escape(el.id)).val());
           }
         };
       } else {
@@ -2498,10 +2514,12 @@
       const existingOnInit = options.onInitialize;
       options.onInitialize = function() {
         if (existingOnInit) existingOnInit.call(this);
-        this.wrapper.classList.add("selectize-control");
-        this.control.classList.add("selectize-input");
-        this.dropdown.classList.add("selectize-dropdown");
-        this.dropdown_content.classList.add("selectize-dropdown-content");
+        this.wrapper.classList.add(selectizeCompatClasses.wrapper);
+        this.control.classList.add(selectizeCompatClasses.control);
+        this.dropdown.classList.add(selectizeCompatClasses.dropdown);
+        this.dropdown_content.classList.add(
+          selectizeCompatClasses.dropdownContent
+        );
       };
       const ts = new TomSelectCtor(el, options);
       return ts;
