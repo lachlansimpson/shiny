@@ -34,14 +34,11 @@ test_that("performance warning works", {
 })
 
 
-test_that("jqueryui is attached when drag_drop plugin is present", {
+test_that("jqueryui is NOT attached when drag_drop plugin is present (tom-select uses native DnD)", {
   x <- selectizeInput("test", "test", choices = 1:3, multiple = TRUE, options = list(plugins = "drag_drop"))
   deps <- htmltools::resolveDependencies(htmltools::htmlDependencies(x))
-  expect_length(deps, 2)
-  expect_setequal(
-    vapply(deps, `[[`, character(1), "name"),
-    c("selectize", "jqueryui")
-  )
+  expect_length(deps, 1)
+  expect_equal(deps[[1]]$name, "selectize")
 })
 
 
@@ -97,4 +94,36 @@ test_that("selectInputUI has a select at an expected location", {
       }
     }
   }
+})
+
+# --- tom-select migration tests ---
+
+test_that("drag_drop plugin no longer requires jqueryui (tom-select uses native DnD)", {
+  x <- selectizeInput("test", "test", choices = 1:3, multiple = TRUE,
+                      options = list(plugins = "drag_drop"))
+  deps <- htmltools::resolveDependencies(htmltools::htmlDependencies(x))
+  dep_names <- vapply(deps, `[[`, character(1), "name")
+  expect_false("jqueryui" %in% dep_names)
+  expect_true("selectize" %in% dep_names)
+})
+
+test_that("selectize-plugin-a11y is silently stripped from user-supplied plugins", {
+  x <- selectizeInput("test", "test", choices = 1:3,
+                      options = list(plugins = list("selectize-plugin-a11y", "remove_button")))
+  # The script tag is the second child of the inner div (after the select element)
+  script_tag <- x$children[[2]]$children[[2]]
+  json <- jsonlite::fromJSON(as.character(script_tag$children[[1]]))
+  plugins <- unlist(json$plugins)
+  expect_false("selectize-plugin-a11y" %in% plugins)
+  expect_true("remove_button" %in% plugins)
+})
+
+test_that("selectizeScripts() returns a single path (no a11y plugin script)", {
+  scripts <- selectizeScripts()
+  expect_length(scripts, 1)
+  expect_match(scripts, "tom-select")
+})
+
+test_that("version_selectize is the tom-select version (2.x)", {
+  expect_match(version_selectize, "^2\\.")
 })
