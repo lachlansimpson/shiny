@@ -3,7 +3,51 @@ import { $escape, hasDefinedProperty, updateLabel } from "../../utils";
 import { indirectEval } from "../../utils/eval";
 import { InputBinding } from "./inputBinding";
 
-type SelectHTMLElement = HTMLSelectElement & { nonempty: boolean };
+// tom-select stores the instance on the element after initialisation
+type SelectHTMLElement = HTMLSelectElement & {
+  nonempty: boolean;
+  tomselect?: TomSelectInstance;
+};
+
+// tom-select ships its own TypeScript declarations (tom-select devDependency).
+// The runtime value is window.TomSelect injected by the separately loaded JS.
+type TomSelectSettings = {
+  labelField: string;
+  valueField: string;
+  searchField: string[];
+  optgroupField?: string;
+  optgroupLabelField?: string;
+  optgroupValueField?: string;
+  searchConjunction?: string;
+  maxOptions?: number;
+  maxItems?: number | null;
+  selectOnTab?: boolean;
+  plugins?: string[];
+  load?: (query: string, callback: (results?: unknown[]) => void) => void;
+  onInitialize?: (this: TomSelectInstance) => void;
+  onItemRemove?: (this: TomSelectInstance, value: string) => void;
+  onDropdownClose?: (this: TomSelectInstance, dropdown: HTMLElement) => void;
+  [key: string]: unknown;
+};
+
+type TomSelectShinyOptions = TomSelectSettings & {
+  shinyRemoveButton?: "none" | "true" | "false" | "both";
+};
+
+type TomSelectInstance = {
+  settings: TomSelectSettings;
+  getValue(): string | string[];
+  setValue(value: string | string[]): void;
+  destroy(): void;
+  clear(): void;
+  clearOptions(): void;
+  addOptionGroup(id: string, data: Record<string, string>): void;
+  load(value: string): void;
+  wrapper: HTMLElement;
+  control: HTMLElement;
+  dropdown: HTMLElement;
+  dropdown_content: HTMLElement;
+};
 
 type SelectInputReceiveMessageData = {
   label: string;
@@ -13,39 +57,8 @@ type SelectInputReceiveMessageData = {
   value?: string;
 };
 
-type SelectizeInfo = Selectize.IApi<string, unknown> & {
-  settings: Selectize.IOptions<string, unknown>;
-};
-
-type SelectizeOptions = Selectize.IOptions<string, unknown> & {
-  // Provide some stronger typing for the Selectize options
-  labelField: "label";
-  valueField: "value";
-  searchField: ["label"];
-  onItemRemove?: (value: string) => void;
-  onDropdownClose?: () => void;
-};
-
-// Adds a py-shiny specific "option" that makes the
-// input_selectize(remove_button) parameter possible
-type SelectizeShinyOptions = SelectizeOptions & {
-  shinyRemoveButton?: "none" | "true" | "false" | "both";
-};
-
-function getLabelNode(el: SelectHTMLElement): JQuery<HTMLElement> {
-  let escapedId = $escape(el.id);
-
-  if (isSelectize(el)) {
-    escapedId += "-selectized";
-  }
-  return $(el)
-    .parent()
-    .parent()
-    .find('label[for="' + escapedId + '"]');
-}
-// Return true if it's a selectize input, false if it's a regular select input.
-
-function isSelectize(el: HTMLElement): boolean {
+// Return true if this element is enhanced by tom-select (has a JSON config script sibling).
+function isTomSelect(el: HTMLElement): boolean {
   const config = $(el)
     .parent()
     .find('script[data-for="' + $escape(el.id) + '"]');
@@ -53,16 +66,25 @@ function isSelectize(el: HTMLElement): boolean {
   return config.length > 0;
 }
 
+function getLabelNode(el: SelectHTMLElement): JQuery<HTMLElement> {
+  let escapedId = $escape(el.id);
+
+  // tom-select remaps label[for="inputId"] → label[for="inputId-ts-control"]
+  if (isTomSelect(el)) {
+    escapedId += "-ts-control";
+  }
+  return $(el).parent().parent().find('label[for="' + escapedId + '"]');
+}
+
 class SelectInputBinding extends InputBinding {
   find(scope: HTMLElement): JQuery<HTMLElement> {
-    // Inputs also have .shiny-input-select class
     return $(scope).find("select");
   }
+
   getType(el: HTMLElement): string | null {
     const $el = $(el);
 
     if (!$el.hasClass("symbol")) {
-      // default character type
       return null;
     }
     if ($el.attr("multiple") === "multiple") {
@@ -71,40 +93,38 @@ class SelectInputBinding extends InputBinding {
       return "shiny.symbol";
     }
   }
+
   getId(el: SelectHTMLElement): string {
     return InputBinding.prototype.getId.call(this, el) || el.name;
   }
-  getValue(el: SelectHTMLElement): any {
-    if (!isSelectize(el)) {
+
+  getValue(el: SelectHTMLElement): unknown {
+    if (!isTomSelect(el)) {
       return $(el).val();
     } else {
-      const selectize = this._selectize(el);
-
-      return selectize?.getValue();
+      return el.tomselect?.getValue();
     }
   }
+
   setValue(el: SelectHTMLElement, value: string): void {
-    if (!isSelectize(el)) {
+    if (!isTomSelect(el)) {
       $(el).val(value);
     } else {
-      const selectize = this._selectize(el);
-
-      selectize?.setValue(value);
+      el.tomselect?.setValue(value);
     }
   }
+
   getState(el: SelectHTMLElement): {
     label: JQuery<HTMLElement>;
     value: ReturnType<SelectInputBinding["getValue"]>;
     options: Array<{ value: string; label: string }>;
   } {
-    // Store options in an array of objects, each with with value and label
     const options: Array<{ value: string; label: string }> = new Array(
       el.length,
     );
 
     for (let i = 0; i < el.length; i++) {
       options[i] = {
-        // TODO-barret; Is this a safe assumption?; Are there no Option Groups?
         value: (el[i] as HTMLOptionElement).value,
         label: el[i].label,
       };
@@ -116,104 +136,83 @@ class SelectInputBinding extends InputBinding {
       options: options,
     };
   }
+
   async receiveMessage(
     el: SelectHTMLElement,
     data: SelectInputReceiveMessageData,
   ): Promise<void> {
     const $el = $(el);
 
-    // This will replace all the options
+    // Replace all options: destroy, swap HTML, reinitialise
     if (hasDefinedProperty(data, "options")) {
-      const selectize = this._selectize(el);
-
-      // Must destroy selectize before appending new options, otherwise
-      // selectize will restore the original select
-      selectize?.destroy();
-      // Clear existing options and add each new one
+      el.tomselect?.destroy();
       $el.empty().append(data.options!);
-      this._selectize(el);
+      this._initTomSelect(el);
     }
 
-    // re-initialize selectize
+    // Re-initialise with a new config script
     if (hasDefinedProperty(data, "config")) {
       $el
         .parent()
         .find('script[data-for="' + $escape(el.id) + '"]')
         .replaceWith(data.config!);
-      this._selectize(el, true);
+      this._initTomSelect(el, true);
     }
 
-    // use server-side processing for selectize
+    // Server-side selectize: wire up AJAX load function
     if (hasDefinedProperty(data, "url")) {
-      type CallbackFn = Parameters<
-        NonNullable<SelectizeInfo["settings"]["load"]>
-      >[1];
-      const selectize = this._selectize(el) as ReturnType<
-        SelectInputBinding["_selectize"]
-      > & {
-        settings: {
-          load: (query: string, callback: CallbackFn) => any;
-        };
-      };
+      const ts = this._initTomSelect(el);
 
-      // Calling selectize.clear() first works around https://github.com/selectize/selectize.js/issues/2146
-      // As of selectize.js >= v0.13.1, .clearOptions() clears the selection,
-      // but does NOT remove the previously-selected options. So unless we call
-      // .clear() first, the current selection(s) will remain as (deselected)
-      // options. See #3966 #4142
-      selectize.clear();
-      selectize.clearOptions();
-      let loaded = false;
+      if (ts) {
+        ts.clear();
+        ts.clearOptions(); // resets loadedSearches cache
 
-      selectize.settings.load = function (query: string, callback: CallbackFn) {
-        const settings = selectize.settings;
+        ts.settings.load = function (
+          query: string,
+          callback: (results?: unknown[]) => void,
+        ) {
+          const settings = ts.settings;
 
-        $.ajax({
-          url: data.url,
-          data: {
-            query: query,
-            field: JSON.stringify([settings.searchField]),
-            value: settings.valueField,
-            conju: settings.searchConjunction,
-            maxop: settings.maxOptions,
-          },
-          type: "GET",
-          error: function () {
-            callback();
-          },
-          success: function (res) {
-            // res = [{label: '1', value: '1', group: '1'}, ...]
-            // success is called after options are added, but
-            // groups need to be added manually below
-            $.each(res, function (index, elem) {
-              // Call selectize.addOptionGroup once for each optgroup; the
-              // first argument is the group ID, the second is an object with
-              // the group's label and value. We use the current settings of
-              // the selectize object to decide the fieldnames of that obj.
-              const optgroupId = elem[settings.optgroupField || "optgroup"];
-              const optgroup: { [key: string]: string } = {};
+          $.ajax({
+            url: data.url,
+            data: {
+              query: query,
+              field: JSON.stringify([settings.searchField]),
+              value: settings.valueField,
+              conju: settings.searchConjunction,
+              maxop: settings.maxOptions,
+            },
+            type: "GET",
+            error: function () {
+              callback();
+            },
+            success: function (res: Array<Record<string, string>>) {
+              res.forEach(function (elem) {
+                const optgroupId =
+                  elem[settings.optgroupField ?? "optgroup"];
+                if (optgroupId) {
+                  const optgroup: Record<string, string> = {};
 
-              optgroup[settings.optgroupLabelField || "label"] = optgroupId;
-              optgroup[settings.optgroupValueField || "value"] = optgroupId;
-              selectize.addOptionGroup(optgroupId, optgroup);
-            });
-            callback(res);
-            if (!loaded) {
+                  optgroup[settings.optgroupLabelField ?? "label"] =
+                    optgroupId;
+                  optgroup[settings.optgroupValueField ?? "value"] =
+                    optgroupId;
+                  ts.addOptionGroup(optgroupId, optgroup);
+                }
+              });
+              callback(res);
               if (hasDefinedProperty(data, "value")) {
-                selectize.setValue(data.value as any);
-              } else if (settings.maxItems === 1) {
-                // first item selected by default only for single-select
-                selectize.setValue(res[0].value);
+                ts.setValue(data.value as string);
+              } else if (settings.maxItems === 1 && res.length > 0) {
+                ts.setValue(res[0][settings.valueField]);
               }
-            }
-            loaded = true;
-          },
-        });
-      };
-      // perform an empty search after changing the `load` function
-      selectize.load(function (callback) {
-        selectize.settings.load.apply(selectize, ["", callback]);
-      });
+            },
+          });
+        };
+
+        // clearOptions() reset loadedSearches, so this empty load will proceed
+        ts.load("");
+      }
     } else if (hasDefinedProperty(data, "value")) {
       // @ts-expect-error; data.value is currently a never type
       this.setValue(el, data.value);
@@ -223,14 +222,12 @@ class SelectInputBinding extends InputBinding {
 
     $(el).trigger("change");
   }
+
   subscribe(el: SelectHTMLElement, callback: (x: boolean) => void): void {
     $(el).on(
       "change.selectInputBinding",
-      // event: Event
       () => {
         // https://github.com/rstudio/shiny/issues/2162
-        // Prevent spurious events that are gonna be squelched in
-        // a second anyway by the onItemRemove down below
         if (el.nonempty && this.getValue(el) === "") {
           return;
         }
@@ -238,19 +235,29 @@ class SelectInputBinding extends InputBinding {
       },
     );
   }
+
   unsubscribe(el: HTMLElement): void {
     $(el).off(".selectInputBinding");
   }
+
   initialize(el: SelectHTMLElement): void {
-    this._selectize(el);
+    this._initTomSelect(el);
   }
-  protected _selectize(
+
+  protected _initTomSelect(
     el: SelectHTMLElement,
     update = false,
-  ): SelectizeInfo | undefined {
-    // Apps like 008-html do not have the selectize js library
-    // Safe-guard against missing the selectize js library
-    if (!$.fn.selectize) return undefined;
+  ): TomSelectInstance | undefined {
+    // Apps like 008-html that don't load the tom-select JS are safe-guarded here.
+    const win = window as unknown as {
+      TomSelect?: new (
+        el: HTMLSelectElement,
+        opts: TomSelectSettings,
+      ) => TomSelectInstance;
+    };
+
+    if (typeof win.TomSelect === "undefined") return undefined;
+
     const $el = $(el);
     const config = $el
       .parent()
@@ -258,75 +265,102 @@ class SelectInputBinding extends InputBinding {
 
     if (config.length === 0) return undefined;
 
-    let options: SelectizeShinyOptions = $.extend(
+    if (el.tomselect) {
+      if (!update) return el.tomselect;
+      el.tomselect.destroy();
+    }
+
+    let options: TomSelectShinyOptions = Object.assign(
       {
         labelField: "label",
         valueField: "value",
         searchField: ["label"],
+        selectOnTab: false,
       },
       JSON.parse(config.html()),
     );
 
     options = this._addShinyRemoveButton(options, el.hasAttribute("multiple"));
 
-    // selectize created from selectInput()
+    // nonempty: selectInput (not selectizeInput) prevents empty value for single-select
     if (typeof config.data("nonempty") !== "undefined") {
       el.nonempty = true;
-      options = $.extend(options, {
-        onItemRemove: function (this: SelectizeInfo, value: string) {
-          if (this.getValue() === "")
-            $("select#" + $escape(el.id))
-              .empty()
-              .append(
-                $("<option/>", {
-                  value: value,
-                  selected: true,
-                }),
-              )
-              .trigger("change");
-        },
-        onDropdownClose:
-          // $dropdown: any
-          function (this: SelectizeInfo) {
-            if (this.getValue() === "") {
-              this.setValue($("select#" + $escape(el.id)).val() as string);
-            }
-          },
-      });
+      const existingOnItemRemove = options.onItemRemove;
+
+      options.onItemRemove = function (
+        this: TomSelectInstance,
+        value: string,
+      ) {
+        if (existingOnItemRemove) existingOnItemRemove.call(this, value);
+        if ((this as TomSelectInstance).getValue() === "") {
+          $("select#" + $escape(el.id))
+            .empty()
+            .append(
+              $("<option/>", {
+                value: value,
+                selected: true,
+              }),
+            )
+            .trigger("change");
+        }
+      };
+
+      const existingOnDropdownClose = options.onDropdownClose;
+
+      options.onDropdownClose = function (
+        this: TomSelectInstance,
+        dropdown: HTMLElement,
+      ) {
+        if (existingOnDropdownClose)
+          existingOnDropdownClose.call(this, dropdown);
+        if ((this as TomSelectInstance).getValue() === "") {
+          (this as TomSelectInstance).setValue(
+            $("select#" + $escape(el.id)).val() as string,
+          );
+        }
+      };
     } else {
       el.nonempty = false;
     }
-    // options that should be eval()ed
+
+    // eval-able options (e.g. render functions, onChange callbacks set via I())
     if (config.data("eval") instanceof Array)
-      $.each(config.data("eval"), function (i, x: string) {
-        /*jshint evil: true*/
-        // @ts-expect-error; Need to type `options` keys to know exactly which values are accessed.
-        options[x] = indirectEval("(" + options[x] + ")");
+      (config.data("eval") as string[]).forEach((x: string) => {
+        (options as Record<string, unknown>)[x] = indirectEval(
+          "(" + (options as Record<string, unknown>)[x] + ")",
+        );
       });
-    let control = $el.selectize(options)[0].selectize as SelectizeInfo;
-    // .selectize() does not really update settings; must destroy and rebuild
 
-    if (update) {
-      const settings = $.extend(control.settings, options);
+    // Backwards-compat shim: mirror old .selectize-* class names alongside new
+    // .ts-* names so existing app CSS continues to work. Will be removed in a
+    // future major version.
+    const existingOnInit = options.onInitialize;
 
-      control.destroy();
-      control = $el.selectize(settings)[0].selectize as SelectizeInfo;
-    }
+    options.onInitialize = function (this: TomSelectInstance) {
+      if (existingOnInit) existingOnInit.call(this);
+      this.wrapper.classList.add("selectize-control");
+      this.control.classList.add("selectize-input");
+      this.dropdown.classList.add("selectize-dropdown");
+      this.dropdown_content.classList.add("selectize-dropdown-content");
+    };
 
-    return control;
+    const ts = new win.TomSelect(el, options);
+
+    return ts;
   }
 
-  // Translate shinyRemoveButton option into selectize plugins
+  // Translate shinyRemoveButton option into tom-select plugin names
   private _addShinyRemoveButton(
-    options: SelectizeShinyOptions,
+    options: TomSelectShinyOptions,
     multiple: boolean,
-  ): SelectizeOptions {
+  ): TomSelectSettings {
     let removeButton = options.shinyRemoveButton;
+
     if (removeButton === undefined) {
       return options;
     }
 
-    // None really means 'smart default'
+    // "none" means smart default based on multiple
     if (removeButton === "none") {
       removeButton = multiple ? "true" : "false";
     }
@@ -335,14 +369,14 @@ class SelectInputBinding extends InputBinding {
       return options;
     }
 
-    const plugins = [];
+    const plugins: string[] = [];
+
     if (removeButton === "both") {
       plugins.push("remove_button", "clear_button");
     } else if (removeButton === "true") {
       plugins.push(multiple ? "remove_button" : "clear_button");
     }
 
-    // Add plugins to existing plugins if not already present
     return {
       ...options,
       plugins: Array.from(
