@@ -1,5 +1,9 @@
 # shiny (development version)
 
+## Breaking changes
+
+* `selectInput()` and `selectizeInput()` now use [tom-select](https://tom-select.js.org/) instead of the unmaintained selectize.js. tom-select is a modern, jQuery-free fork of selectize.js with built-in accessibility. Most apps will work without changes. If your app has custom CSS targeting `.selectize-control`, `.selectize-input`, `.selectize-dropdown`, or `.selectize-dropdown-content`, those selectors will continue to work via backwards-compatibility aliases — but please migrate to the new `.ts-wrapper`, `.ts-control`, `.ts-dropdown`, and `.ts-dropdown-content` class names, as the aliases will be removed in a future major version. The `drag_drop` plugin no longer requires jQuery UI. The `selectize-plugin-a11y` plugin name is silently ignored (tom-select has built-in ARIA accessibility). (#4227, #4330)
+
 ## New features
 
 * `session$destroy()` and `session$onDestroy()` are now available on
