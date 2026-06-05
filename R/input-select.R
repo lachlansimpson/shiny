@@ -219,7 +219,9 @@ selectizeIt <- function(inputId, select, options, nonempty = FALSE) {
         "The 'selectize-plugin-a11y' plugin is no longer needed and will be ignored.",
         i = "tom-select (which replaced selectize.js) provides ARIA accessibility natively."
       ),
-      class = "shiny_deprecated_a11y_plugin"
+      class = "shiny_deprecated_a11y_plugin",
+      .frequency = "once",
+      .frequency_id = "shiny_deprecated_a11y_plugin"
     )
     options$plugins <- setdiff(options$plugins, "selectize-plugin-a11y")
   }

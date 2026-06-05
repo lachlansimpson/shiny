@@ -3,6 +3,13 @@ type SelectHTMLElement = HTMLSelectElement & {
     nonempty: boolean;
     tomselect?: TomSelectInstance;
 };
+type TomSelectPluginItem = {
+    name: string;
+    options?: unknown;
+};
+type TomSelectPlugins = Array<string | TomSelectPluginItem> | {
+    [name: string]: unknown;
+};
 type TomSelectSettings = {
     labelField: string;
     valueField: string;
@@ -14,7 +21,7 @@ type TomSelectSettings = {
     maxOptions?: number;
     maxItems?: number | null;
     selectOnTab?: boolean;
-    plugins?: string[];
+    plugins?: TomSelectPlugins;
     load?: (query: string, callback: (results?: unknown[]) => void) => void;
     onInitialize?: (this: TomSelectInstance) => void;
     onItemRemove?: (this: TomSelectInstance, value: string) => void;

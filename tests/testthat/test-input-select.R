@@ -113,6 +113,10 @@ test_that("selectInputUI has a select at an expected location", {
 # --- tom-select migration tests ---
 
 test_that("selectize-plugin-a11y is stripped (with a warning) but co-listed plugins survive", {
+  # The warning uses .frequency = "once", so reset rlang's per-session cache to
+  # keep this assertion deterministic regardless of whether an earlier test (or
+  # test run) already triggered it.
+  rlang::reset_warning_verbosity("shiny_deprecated_a11y_plugin")
   expect_warning(
     x <- selectizeInput("test", "test", choices = 1:3,
                         options = list(plugins = list("selectize-plugin-a11y", "remove_button"))),

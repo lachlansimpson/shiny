@@ -16,6 +16,15 @@ type SelectHTMLElement = HTMLSelectElement & {
 
 // tom-select ships its own TypeScript declarations (tom-select devDependency).
 // The runtime value is window.TomSelect injected by the separately loaded JS.
+// tom-select accepts plugins as an array of names, an array of
+// `{ name, options }` items, or an object keyed by plugin name (see
+// microplugin's `initializePlugins`). Model all three so the filter below can
+// resolve names from each form rather than mishandling the object shapes.
+type TomSelectPluginItem = { name: string; options?: unknown };
+type TomSelectPlugins =
+  | Array<string | TomSelectPluginItem>
+  | { [name: string]: unknown };
+
 type TomSelectSettings = {
   labelField: string;
   valueField: string;
@@ -27,7 +36,7 @@ type TomSelectSettings = {
   maxOptions?: number;
   maxItems?: number | null;
   selectOnTab?: boolean;
-  plugins?: string[];
+  plugins?: TomSelectPlugins;
   load?: (query: string, callback: (results?: unknown[]) => void) => void;
   onInitialize?: (this: TomSelectInstance) => void;
   onItemRemove?: (this: TomSelectInstance, value: string) => void;
@@ -365,26 +374,44 @@ class SelectInputBinding extends InputBinding {
   }
 
   // Remove plugin names not registered by the bundled tom-select build, warning
-  // once per dropped name. Shiny (and the JSON config) represents `plugins` as a
-  // string array; non-array shapes pass through untouched.
+  // once per dropped name. Handles all three forms tom-select accepts: an array
+  // of names, an array of `{ name, options }` items, and an object keyed by
+  // plugin name. Anything else is passed through untouched.
   private _filterUnknownPlugins(
     plugins: TomSelectSettings["plugins"],
     inputId: string,
   ): TomSelectSettings["plugins"] {
-    if (!Array.isArray(plugins)) return plugins;
+    if (plugins == null) return plugins;
 
     const known = new Set<string>(tomSelectBundledPlugins);
-
-    return plugins.filter((name) => {
-      if (known.has(name)) return true;
-
+    const warnUnknown = (name: string): void => {
       console.warn(
         `Shiny: ignoring unknown tom-select plugin "${name}" requested for ` +
           `input "${inputId}". The bundled tom-select build provides: ` +
           `${tomSelectBundledPlugins.join(", ")}.`,
       );
-      return false;
-    });
+    };
+
+    // Array form: each entry is either a name or a `{ name, options }` item.
+    if (Array.isArray(plugins)) {
+      return plugins.filter((plugin) => {
+        const name = typeof plugin === "string" ? plugin : plugin.name;
+        if (known.has(name)) return true;
+        warnUnknown(name);
+        return false;
+      });
+    }
+
+    // Object form: `{ pluginName: options }`. Keep only known keys.
+    const filtered: { [name: string]: unknown } = {};
+    for (const name of Object.keys(plugins)) {
+      if (known.has(name)) {
+        filtered[name] = plugins[name];
+      } else {
+        warnUnknown(name);
+      }
+    }
+    return filtered;
   }
 
   // Translate shinyRemoveButton option into tom-select plugin names
