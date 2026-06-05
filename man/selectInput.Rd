@@ -36,7 +36,7 @@ single-select lists and no values for multiple select lists.}
 
 \item{multiple}{Is selection of multiple items allowed?}
 
-\item{selectize}{Whether to use \pkg{selectize.js} or not.}
+\item{selectize}{Whether to use \pkg{tom-select} or not.}
 
 \item{width}{The width of the input, e.g. \code{'400px'}, or \code{'100\%'};
 see \code{\link[=validateCssUnit]{validateCssUnit()}}.}
@@ -48,7 +48,7 @@ but when \code{size} is set, it will be a box instead.}
 
 \item{...}{Arguments passed to \code{selectInput()}.}
 
-\item{options}{A list of options. See the documentation of \pkg{selectize.js}(\url{https://selectize.dev/docs/usage})
+\item{options}{A list of options. See the documentation of \pkg{tom-select} (\url{https://tom-select.js.org/docs/})
 for possible options (character option values inside \code{\link[base:I]{base::I()}} will
 be treated as literal JavaScript code; see \code{\link[=renderDataTable]{renderDataTable()}}
 for details).}
@@ -62,7 +62,7 @@ from a list of values.
 }
 \details{
 By default, \code{selectInput()} and \code{selectizeInput()} use the JavaScript library
-\pkg{selectize.js} (\url{https://selectize.dev/}) instead of
+\pkg{tom-select} (\url{https://tom-select.js.org/}) instead of
 the basic select input element. To use the standard HTML select input
 element, use \code{selectInput()} with \code{selectize=FALSE}.
 
@@ -82,7 +82,7 @@ on the Shiny Dev Center for details.
 The selectize input created from \code{selectizeInput()} allows
 deletion of the selected option even in a single select input, which will
 return an empty string as its value. This is the default behavior of
-\pkg{selectize.js}. However, the selectize input created from
+\pkg{tom-select}. However, the selectize input created from
 \code{selectInput(..., selectize = TRUE)} will ignore the empty string
 value when it is a single choice input and the empty string is not in the
 \code{choices} argument. This is to keep compatibility with

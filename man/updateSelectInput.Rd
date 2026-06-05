@@ -62,7 +62,7 @@ the example section for a small demo of this feature.}
 \item{selected}{The initially selected value (or multiple values if \code{multiple = TRUE}). If not specified then defaults to the first value for
 single-select lists and no values for multiple select lists.}
 
-\item{options}{A list of options. See the documentation of \pkg{selectize.js}(\url{https://selectize.dev/docs/usage})
+\item{options}{A list of options. See the documentation of \pkg{tom-select} (\url{https://tom-select.js.org/docs/})
 for possible options (character option values inside \code{\link[base:I]{base::I()}} will
 be treated as literal JavaScript code; see \code{\link[=renderDataTable]{renderDataTable()}}
 for details).}
@@ -70,7 +70,7 @@ for details).}
 \item{server}{whether to store \code{choices} on the server side, and load
 the select options dynamically on searching, instead of writing all
 \code{choices} into the page at once (i.e., only use the client-side
-version of \pkg{selectize.js})}
+version of \pkg{tom-select})}
 
 \item{data}{A data frame. Used to retrieve the column names as choices for a \code{\link[=selectInput]{selectInput()}}}
 }

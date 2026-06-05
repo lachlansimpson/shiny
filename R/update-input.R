@@ -679,7 +679,7 @@ updateSelectInput <- function(session = getDefaultReactiveDomain(), inputId, lab
 #' @param server whether to store `choices` on the server side, and load
 #'   the select options dynamically on searching, instead of writing all
 #'   `choices` into the page at once (i.e., only use the client-side
-#'   version of \pkg{selectize.js})
+#'   version of \pkg{tom-select})
 #' @export
 updateSelectizeInput <- function(session = getDefaultReactiveDomain(), inputId, label = NULL, choices = NULL,
                                  selected = NULL, options = list(),
