@@ -3,7 +3,7 @@
 # Run from the repo root to update the bundled tom-select library.
 # Usage: Rscript tools/updateTomSelect.R
 #
-# Prerequisites: bun, Rscript with jsonlite, sass, and bslib packages installed
+# Prerequisites: npm, Rscript with jsonlite, sass, and bslib packages installed
 
 # Run an external command and abort if it exits non-zero, mirroring the
 # error-handling pattern used by the other tools/update*.R scripts.
@@ -18,8 +18,8 @@ run <- function(cmd, args) {
   invisible(out)
 }
 
-message("Installing tom-select via bun...")
-run("bun", "install")
+message("Installing tom-select via npm...")
+run("npm", "install")
 
 # Read installed version
 pkg_json <- jsonlite::fromJSON("node_modules/tom-select/package.json")
@@ -45,9 +45,8 @@ writeLines(
 )
 message("Updated R/version_selectize.R")
 
-# Minify via esbuild. The build scripts in package.json are invoked through
-# npm (matching how the rest of the frontend is built); only dependency
-# installation uses bun, which writes bun.lock.
+# Minify via esbuild. Both dependency installation and the build scripts in
+# package.json go through npm, matching how the rest of the frontend is built.
 message("Minifying JS...")
 run("npm", "run bundle_external_libs")
 
@@ -70,4 +69,4 @@ message("  inst/www/shared/selectize/js/tom-select.complete.js")
 message("  inst/www/shared/selectize/js/tom-select.complete.min.js")
 message("  inst/www/shared/selectize/css/selectize.bootstrap3.css")
 message("  R/version_selectize.R")
-message("  bun.lock")
+message("  package-lock.json")

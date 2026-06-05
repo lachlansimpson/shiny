@@ -18,6 +18,12 @@ README.html
 coverage/
 madge.svg
 
+# Shiny uses npm (package-lock.json). Ignore Bun's lockfile so a stray
+# `bun install` doesn't reintroduce it; migrating to Bun would be a separate,
+# deliberate change to the build scripts and CI.
+bun.lock
+bun.lockb
+
 
 # GHA remotes installation
 .github/r-depends.rds
