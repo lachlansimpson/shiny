@@ -2089,6 +2089,22 @@
     dropdown: "selectize-dropdown",
     dropdownContent: "selectize-dropdown-content"
   };
+  var tomSelectBundledPlugins = [
+    "caret_position",
+    "change_listener",
+    "checkbox_options",
+    "clear_button",
+    "drag_drop",
+    "dropdown_header",
+    "dropdown_input",
+    "input_autogrow",
+    "no_active_items",
+    "no_backspace_delete",
+    "optgroup_columns",
+    "remove_button",
+    "restore_on_backspace",
+    "virtual_scroll"
+  ];
 
   // srcts/src/bindings/input/text.ts
   function getLabelNode3(el) {
@@ -2521,8 +2537,23 @@
           selectizeCompatClasses.dropdownContent
         );
       };
+      options.plugins = this._filterUnknownPlugins(options.plugins, el.id);
       const ts = new TomSelectCtor(el, options);
       return ts;
+    }
+    // Remove plugin names not registered by the bundled tom-select build, warning
+    // once per dropped name. Shiny (and the JSON config) represents `plugins` as a
+    // string array; non-array shapes pass through untouched.
+    _filterUnknownPlugins(plugins, inputId) {
+      if (!Array.isArray(plugins)) return plugins;
+      const known = new Set(tomSelectBundledPlugins);
+      return plugins.filter((name) => {
+        if (known.has(name)) return true;
+        console.warn(
+          `Shiny: ignoring unknown tom-select plugin "${name}" requested for input "${inputId}". The bundled tom-select build provides: ${tomSelectBundledPlugins.join(", ")}.`
+        );
+        return false;
+      });
     }
     // Translate shinyRemoveButton option into tom-select plugin names
     _addShinyRemoveButton(options, multiple) {

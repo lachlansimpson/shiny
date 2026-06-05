@@ -21,4 +21,33 @@ const selectizeCompatClasses = {
   dropdownContent: "selectize-dropdown-content",
 } as const;
 
-export { selectizeCompatClasses, selectizeHiddenSuffix, tsControlSuffix };
+// The plugins registered by the bundled `tom-select.complete.js` build (via
+// `TomSelect.define(...)`). Requesting a name outside this set makes tom-select
+// throw "Unable to find plugin" at construction, which surfaces as an opaque
+// error. The select binding filters against this list before `new TomSelect()`
+// as defense in depth: the R side strips the obsolete `selectize-plugin-a11y`,
+// but plugins can also be injected client-side, so we guard here too. Keep this
+// in sync with `inst/www/shared/selectize/js/tom-select.complete.js`.
+const tomSelectBundledPlugins = [
+  "caret_position",
+  "change_listener",
+  "checkbox_options",
+  "clear_button",
+  "drag_drop",
+  "dropdown_header",
+  "dropdown_input",
+  "input_autogrow",
+  "no_active_items",
+  "no_backspace_delete",
+  "optgroup_columns",
+  "remove_button",
+  "restore_on_backspace",
+  "virtual_scroll",
+] as const;
+
+export {
+  selectizeCompatClasses,
+  selectizeHiddenSuffix,
+  tomSelectBundledPlugins,
+  tsControlSuffix,
+};

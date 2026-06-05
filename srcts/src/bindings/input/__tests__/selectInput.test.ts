@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   selectizeCompatClasses,
   selectizeHiddenSuffix,
+  tomSelectBundledPlugins,
   tsControlSuffix,
 } from "../tomSelectConstants";
 
@@ -45,4 +46,34 @@ void test("compat shim maps each tom-select element to a legacy selectize class"
   for (const legacy of Object.values(selectizeCompatClasses)) {
     assert.equal(tomSelectClasses.includes(legacy), false);
   }
+});
+
+void test("bundled-plugins list includes the remove/clear buttons shinyRemoveButton wires up", () => {
+  // _addShinyRemoveButton injects these names; if they ever drop out of the
+  // bundled build, _filterUnknownPlugins would silently strip them back out and
+  // the remove button would vanish. Pin them so that regression is caught here.
+  assert.ok(tomSelectBundledPlugins.includes("remove_button"));
+  assert.ok(tomSelectBundledPlugins.includes("clear_button"));
+  // The obsolete a11y plugin is NOT a tom-select plugin, so a client-side
+  // request for it must be filtered (mirrors the R-side strip + deprecation).
+  assert.equal(
+    (tomSelectBundledPlugins as readonly string[]).includes(
+      "selectize-plugin-a11y",
+    ),
+    false,
+  );
+});
+
+void test("unknown plugin names are filtered out, known names pass through", () => {
+  // Mirror the filter in _initTomSelect so the array-pruning logic is covered
+  // without a full jsdom + window.TomSelect harness.
+  const known = new Set<string>(tomSelectBundledPlugins);
+  const filter = (plugins: string[]): string[] =>
+    plugins.filter((name) => known.has(name));
+
+  assert.deepEqual(
+    filter(["remove_button", "selectize-plugin-a11y", "drag_drop", "bogus"]),
+    ["remove_button", "drag_drop"],
+  );
+  assert.deepEqual(filter([]), []);
 });

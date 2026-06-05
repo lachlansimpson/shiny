@@ -2,7 +2,11 @@ import $ from "jquery";
 import { $escape, hasDefinedProperty, updateLabel } from "../../utils";
 import { indirectEval } from "../../utils/eval";
 import { InputBinding } from "./inputBinding";
-import { selectizeCompatClasses, tsControlSuffix } from "./tomSelectConstants";
+import {
+  selectizeCompatClasses,
+  tomSelectBundledPlugins,
+  tsControlSuffix,
+} from "./tomSelectConstants";
 
 // tom-select stores the instance on the element after initialisation
 type SelectHTMLElement = HTMLSelectElement & {
@@ -349,9 +353,38 @@ class SelectInputBinding extends InputBinding {
       );
     };
 
+    // Defense in depth: drop any plugin tom-select can't resolve before
+    // construction. The R side already strips the obsolete
+    // `selectize-plugin-a11y`, but plugins can be injected client-side too, and
+    // an unknown name makes `new TomSelect()` throw an opaque error.
+    options.plugins = this._filterUnknownPlugins(options.plugins, el.id);
+
     const ts = new TomSelectCtor(el, options);
 
     return ts;
+  }
+
+  // Remove plugin names not registered by the bundled tom-select build, warning
+  // once per dropped name. Shiny (and the JSON config) represents `plugins` as a
+  // string array; non-array shapes pass through untouched.
+  private _filterUnknownPlugins(
+    plugins: TomSelectSettings["plugins"],
+    inputId: string,
+  ): TomSelectSettings["plugins"] {
+    if (!Array.isArray(plugins)) return plugins;
+
+    const known = new Set<string>(tomSelectBundledPlugins);
+
+    return plugins.filter((name) => {
+      if (known.has(name)) return true;
+
+      console.warn(
+        `Shiny: ignoring unknown tom-select plugin "${name}" requested for ` +
+          `input "${inputId}". The bundled tom-select build provides: ` +
+          `${tomSelectBundledPlugins.join(", ")}.`,
+      );
+      return false;
+    });
   }
 
   // Translate shinyRemoveButton option into tom-select plugin names

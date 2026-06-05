@@ -43,6 +43,18 @@ test_that("jqueryui is NOT attached when drag_drop plugin is present (tom-select
   expect_true("selectize" %in% dep_names)
 })
 
+test_that("non-a11y plugins do not trigger the deprecation warning", {
+  # A real tom-select plugin passes through untouched and silently.
+  expect_no_warning(
+    selectizeInput(
+      "test", "test", choices = 1:3, multiple = TRUE,
+      options = list(plugins = "drag_drop")
+    )
+  )
+  # No plugins at all: no warning.
+  expect_no_warning(selectizeInput("test", "test", choices = 1:3))
+})
+
 
 test_that("selectInput options are properly escaped", {
   si <- selectInput("quote", "Quote", list(
@@ -100,9 +112,12 @@ test_that("selectInputUI has a select at an expected location", {
 
 # --- tom-select migration tests ---
 
-test_that("selectize-plugin-a11y is silently stripped from user-supplied plugins", {
-  x <- selectizeInput("test", "test", choices = 1:3,
-                      options = list(plugins = list("selectize-plugin-a11y", "remove_button")))
+test_that("selectize-plugin-a11y is stripped (with a warning) but co-listed plugins survive", {
+  expect_warning(
+    x <- selectizeInput("test", "test", choices = 1:3,
+                        options = list(plugins = list("selectize-plugin-a11y", "remove_button"))),
+    class = "shiny_deprecated_a11y_plugin"
+  )
   # The script tag is the second child of the inner div (after the select element)
   script_tag <- x$children[[2]]$children[[2]]
   json <- jsonlite::fromJSON(as.character(script_tag$children[[1]]))

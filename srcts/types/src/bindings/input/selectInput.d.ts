@@ -63,6 +63,7 @@ declare class SelectInputBinding extends InputBinding {
     unsubscribe(el: HTMLElement): void;
     initialize(el: SelectHTMLElement): void;
     protected _initTomSelect(el: SelectHTMLElement, update?: boolean): TomSelectInstance | undefined;
+    private _filterUnknownPlugins;
     private _addShinyRemoveButton;
 }
 export { SelectInputBinding };
