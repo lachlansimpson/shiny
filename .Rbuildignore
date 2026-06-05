@@ -25,7 +25,9 @@
 ^\.madgerc$
 ^package\.json$
 ^tsconfig\.json$
+^tsconfig\.eslint\.json$
 ^package-lock\.json$
+^bun\.lock$
 ^node_modules$
 ^coverage$
 ^.ignore$
