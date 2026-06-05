@@ -202,5 +202,5 @@ Shiny already has a handful of html dependencies that should NOT be bundled with
   * Bootstrap is not being updated anymore. Only bootstrap 3.4 will be utilized within shiny.js. To use the latest bootstrap, see [`rstudio/bslib`](https://github.com/rstudio/bslib)
 * `bootstrap-datepicker` / `@types/bootstrap-datepicker`
 * `ion-rangeslider` / `@types/ion-rangeslider`
-* `selectize` / `@types/selectize`
+* `tom-select` (ships its own TypeScript types; no separate `@types` package)
 * `strftime`

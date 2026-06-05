@@ -69,23 +69,39 @@ To create a new patch:
 1. Commit the changes.
 
 
-## Updating and patching selectize
+## Updating tom-select
+
+Shiny's `selectInput()` / `selectizeInput()` are powered by
+[tom-select](https://tom-select.js.org/), a jQuery-free fork of the now
+unmaintained selectize.js. The bundled library lives in
+`inst/www/shared/selectize/`. That directory keeps its legacy `selectize` name
+(and the htmltools dependency is still named `"selectize"`) so it continues to
+de-duplicate with DT, crosstalk, and other packages that bundle selectize.js.
 
 ### Updating
 
-[selectize](https://github.com/selectize/selectize.js) and [its accessibility plugin](https://github.com/SLMNBJ/selectize-plugin-a11y) can be updated with the script `updateSelectize.R`. That script downloads a specific version of selectize and selectize-plugin-a11y, and applies our patches in tools/selectize-patches.
+1. Bump the `tom-select` version in `package.json`.
+1. Run `Rscript tools/updateTomSelect.R` from the repo root. The script:
+   - runs `npm install`,
+   - copies `tom-select.complete.js` (the build with all bundled plugins) into
+     `inst/www/shared/selectize/js/`,
+   - writes the detected version to `R/version_selectize.R`,
+   - minifies the JS via `npm run bundle_external_libs`, and
+   - regenerates the precompiled Bootstrap 3 fallback
+     `css/selectize.bootstrap3.css`.
+1. Commit the files the script lists when it finishes.
 
+### Customizing the styles
 
-### Making a new patch
+There are no binary patches anymore (the selectize.js integration used to apply
+patches from `tools/selectize-patches`). The styles are maintained directly as
+Sass sources in `inst/www/shared/selectize/scss/`. Edit those `.scss` files,
+then re-run `tools/updateTomSelect.R` to regenerate the precompiled Bootstrap 3
+fallback CSS; the bslib-themed Bootstrap 4/5 styles are compiled at runtime.
 
-To create a new patch:
-
-1. Make any necessary changes to files in `inst/www/shared/selectize`
-1. **Do not commit your changes.**
-1. Instead, create a patch with a command like `git diff > tools/selectize-patches/000-assign-unique-id-per-option.patch`. Patches are applied in alphabetic order (per `list.files`), so you should name your patch based on the last one in `tools/selectize-patches` so that it's applied last.
-1. Run `updateSelectize.R` to download the library and apply patches.
-1. Test your changes
-1. `git add` the new `.patch` and any resulting changes
+Keep the sources LibSass-compatible: the `sass` R package does not support Dart
+Sass features such as `@use` or case-insensitive `RGBA()`, so prefer plain
+`rgba()` and avoid module syntax.
 
 ## Updating Shiny's [S]CSS
 
