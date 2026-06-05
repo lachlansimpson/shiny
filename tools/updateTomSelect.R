@@ -50,18 +50,36 @@ message("Updated R/version_selectize.R")
 message("Minifying JS...")
 run("npm", "run bundle_external_libs")
 
-# Regenerate pre-compiled Bootstrap 3 CSS fallback
+# Regenerate the pre-compiled Bootstrap 3 CSS fallback. This file is served
+# *raw* to apps that have no bslib theme (selectizeStaticDependency() in
+# R/input-select.R), so it must be valid, fully-compiled CSS.
+#
+# Compile selectize.bootstrap3.scss against bslib's full Bootstrap 3 bundle via
+# sass::sass_partial() -- the same machinery the themed path uses at runtime --
+# so Bootstrap Sass functions (e.g. color-contrast()) are in scope and resolve.
+# A bare sass::sass() of the scss with only _variables/_mixins prepended leaves
+# those functions undefined; LibSass then passes them through as literal text,
+# producing CSS the browser silently drops.
 message("Regenerating css/selectize.bootstrap3.css...")
-bs3_path <- system.file("lib/bs3/assets/stylesheets/bootstrap", package = "bslib")
-css <- sass::sass(
-  input = list(
-    sass::sass_file(file.path(bs3_path, "_variables.scss")),
-    sass::sass_file(file.path(bs3_path, "_mixins.scss")),
-    sass::sass_file("inst/www/shared/selectize/scss/selectize.bootstrap3.scss")
-  ),
-  options = sass::sass_options(output_style = "compressed")
+css_header <- paste0(
+  "/*! tom-select.js (https://tom-select.js.org), derived from selectize.js. ",
+  "Apache-2.0 License. Bundled with Shiny; do not edit by hand -- regenerate ",
+  "via tools/updateTomSelect.R. */\n"
 )
-writeLines(css, "inst/www/shared/selectize/css/selectize.bootstrap3.css")
+css <- sass::sass_partial(
+  rules = sass::sass_file("inst/www/shared/selectize/scss/selectize.bootstrap3.scss"),
+  bundle = bslib::bs_theme(version = 3),
+  options = sass::sass_options(output_style = "compressed"),
+  cache = FALSE
+)
+# Guard: the fallback is consumed raw, so it must never contain uncompiled Sass.
+# Match only the uppercase RGB()/RGBA() (LibSass passthrough); compiled output
+# legitimately contains lowercase rgba().
+if (grepl("@use|@import|\\bmath\\.|color-contrast\\(|\\bRGBA?\\(", css)) {
+  stop("selectize.bootstrap3.css still contains uncompiled Sass tokens; ",
+       "check the .scss sources for Dart-Sass-only constructs.")
+}
+writeLines(paste0(css_header, css), "inst/www/shared/selectize/css/selectize.bootstrap3.css")
 message("Updated css/selectize.bootstrap3.css (", nchar(css), " chars)")
 
 message("\nDone. Commit the following files:")

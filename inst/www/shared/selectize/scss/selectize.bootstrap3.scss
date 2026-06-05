@@ -10,7 +10,7 @@ $select-color-input-full: $input-bg;
 $select-color-input-error: $state-danger-text;
 $select-color-input-error-focus: darken($select-color-input-error, 10%);
 $select-color-disabled: $input-bg;
-$select-color-item: RGBA($select-color-text, 0.1);
+$select-color-item: rgba($select-color-text, 0.1);
 $select-color-item-border: rgba(0, 0, 0, 0);
 $select-color-item-active: $component-active-bg;
 $select-color-item-active-text: color-contrast($select-color-item-active);
@@ -22,6 +22,10 @@ $select-color-dropdown: $dropdown-bg;
 $select-color-dropdown-border-top: mix($input-border, $input-bg, 80%);
 $select-color-dropdown-item-active: $dropdown-link-hover-bg;
 $select-color-dropdown-item-active-text: $dropdown-link-hover-color;
+// Override the base default, which derives this from the `$select-color-rgb`
+// list via `RGBA(list, ...)`. That Dart Sass idiom does not compile under the
+// `sass` package's LibSass; resolve it here from the (color-valued) text var.
+$select-color-dropdown-item-create-text: rgba($select-color-text, 0.5);
 $select-color-dropdown-item-create-active-text: $dropdown-link-hover-color;
 $select-opacity-disabled: 0.5;
 $select-shadow-input: none;

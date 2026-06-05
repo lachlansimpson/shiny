@@ -4,7 +4,7 @@
     padding: ($select-padding-dropdown-item-y * 2)
       $select-padding-dropdown-item-x;
     border-bottom: 1px solid $select-color-border;
-    background: RGBA($select-color-dropdown, 0.15);
+    background: rgba($select-color-dropdown, 0.15);
     border-radius: $select-border-radius $select-border-radius 0 0;
   }
   .ts-dropdown-header-close {
@@ -19,6 +19,8 @@
     text-decoration: none;
   }
   .ts-dropdown-header-close:hover {
-    color: RGB($select-color-rgb);
+    // `RGB($select-color-rgb)` (a Dart Sass list-spread idiom) does not compile
+    // under LibSass; use the equivalent color-valued text variable instead.
+    color: $select-color-text;
   }
 }
