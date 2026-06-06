@@ -231,3 +231,66 @@ void test("_addShinyRemoveButton merges with existing plugins without duplicatin
   // remove_button is requested but already present -> no duplicate.
   assert.deepEqual(result.plugins, ["drag_drop", "remove_button"]);
 });
+
+void test("_addShinyRemoveButton preserves {name, options} plugins while adding the button", () => {
+  const binding = bindingInternals();
+  // Existing plugins in item form must not be discarded when the button is
+  // injected; the button is appended by name.
+  const result = binding._addShinyRemoveButton(
+    {
+      shinyRemoveButton: "true",
+      plugins: [{ name: "drag_drop", options: { foo: 1 } }],
+    },
+    true,
+  );
+  assert.deepEqual(result.plugins, [
+    { name: "drag_drop", options: { foo: 1 } },
+    "remove_button",
+  ]);
+});
+
+void test("_addShinyRemoveButton preserves {name, options} plugins and does not duplicate the button", () => {
+  const binding = bindingInternals();
+  // The button is already present as an item -> no duplicate appended.
+  const result = binding._addShinyRemoveButton(
+    {
+      shinyRemoveButton: "true",
+      plugins: [{ name: "remove_button", options: { title: "x" } }],
+    },
+    true,
+  );
+  assert.deepEqual(result.plugins, [
+    { name: "remove_button", options: { title: "x" } },
+  ]);
+});
+
+void test("_addShinyRemoveButton preserves object-form plugins while adding the button", () => {
+  const binding = bindingInternals();
+  // Object-form plugins (`{ name: options }`) must survive; the button is added
+  // as a new key rather than replacing the whole object.
+  const result = binding._addShinyRemoveButton(
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- tom-select plugin name
+    { shinyRemoveButton: "true", plugins: { drag_drop: { foo: 1 } } },
+    true,
+  );
+  assert.deepEqual(result.plugins, {
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- tom-select plugin name
+    drag_drop: { foo: 1 },
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- tom-select plugin name
+    remove_button: {},
+  });
+});
+
+void test("_addShinyRemoveButton does not clobber an object-form button already present", () => {
+  const binding = bindingInternals();
+  // The button key already exists with options -> keep its options, no reset.
+  const result = binding._addShinyRemoveButton(
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- tom-select plugin name
+    { shinyRemoveButton: "true", plugins: { remove_button: { title: "x" } } },
+    true,
+  );
+  assert.deepEqual(result.plugins, {
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- tom-select plugin name
+    remove_button: { title: "x" },
+  });
+});

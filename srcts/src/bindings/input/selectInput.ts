@@ -444,13 +444,37 @@ class SelectInputBinding extends InputBinding {
 
     return {
       ...options,
-      plugins: Array.from(
-        new Set([
-          ...(Array.isArray(options.plugins) ? options.plugins : []),
-          ...plugins,
-        ]),
-      ),
+      plugins: this._mergePluginNames(options.plugins, plugins),
     };
+  }
+
+  // Merge the given plugin names into an existing plugins value, preserving its
+  // shape (string array, `{ name, options }` array, or `{ name: options }`
+  // object) and skipping any name already present. tom-select accepts all three
+  // forms; the previous implementation only handled the string-array form and
+  // discarded the other two, silently dropping a caller's plugins (and their
+  // options) whenever shinyRemoveButton was also set.
+  private _mergePluginNames(
+    existing: TomSelectSettings["plugins"],
+    names: string[],
+  ): TomSelectSettings["plugins"] {
+    // Object form: `{ pluginName: options }`. Add each missing name as a key.
+    if (existing != null && !Array.isArray(existing)) {
+      const merged: { [name: string]: unknown } = { ...existing };
+      for (const name of names) {
+        if (!(name in merged)) merged[name] = {};
+      }
+      return merged;
+    }
+
+    // Array form (names and/or `{ name, options }` items), or no plugins yet.
+    // De-duplicate by name so an item-form button isn't doubled by a name-form
+    // one.
+    const arr = Array.isArray(existing) ? existing : [];
+    const present = new Set(
+      arr.map((plugin) => (typeof plugin === "string" ? plugin : plugin.name)),
+    );
+    return [...arr, ...names.filter((name) => !present.has(name))];
   }
 }
 

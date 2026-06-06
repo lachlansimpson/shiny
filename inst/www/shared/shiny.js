@@ -2591,13 +2591,28 @@
       }
       return {
         ...options,
-        plugins: Array.from(
-          /* @__PURE__ */ new Set([
-            ...Array.isArray(options.plugins) ? options.plugins : [],
-            ...plugins
-          ])
-        )
+        plugins: this._mergePluginNames(options.plugins, plugins)
       };
+    }
+    // Merge the given plugin names into an existing plugins value, preserving its
+    // shape (string array, `{ name, options }` array, or `{ name: options }`
+    // object) and skipping any name already present. tom-select accepts all three
+    // forms; the previous implementation only handled the string-array form and
+    // discarded the other two, silently dropping a caller's plugins (and their
+    // options) whenever shinyRemoveButton was also set.
+    _mergePluginNames(existing, names) {
+      if (existing != null && !Array.isArray(existing)) {
+        const merged = { ...existing };
+        for (const name of names) {
+          if (!(name in merged)) merged[name] = {};
+        }
+        return merged;
+      }
+      const arr = Array.isArray(existing) ? existing : [];
+      const present = new Set(
+        arr.map((plugin) => typeof plugin === "string" ? plugin : plugin.name)
+      );
+      return [...arr, ...names.filter((name) => !present.has(name))];
     }
   };
 
