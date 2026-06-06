@@ -14,7 +14,8 @@ type SelectHTMLElement = HTMLSelectElement & {
   tomselect?: TomSelectInstance;
 };
 
-// tom-select ships its own TypeScript declarations (tom-select devDependency).
+// tom-select ships its own TypeScript declarations (the `tom-select` package,
+// a build-time dependency used only for these types and the vendored bundle).
 // The runtime value is window.TomSelect injected by the separately loaded JS.
 // tom-select accepts plugins as an array of names, an array of
 // `{ name, options }` items, or an object keyed by plugin name (see
