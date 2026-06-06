@@ -5,7 +5,10 @@ $select-font-size: $input-btn-font-size !default;
 $select-line-height: $input-btn-line-height !default; //formerly line-height-computed
 
 $select-color-rgb: var(--bs-emphasis-color-rgb, 0, 0, 0) !default;
-$select-color-text: RGBA($select-color-rgb, 0.83) !default;
+// Lowercase rgba(): `$select-color-rgb` is a CSS `var()` triplet (so this colour
+// tracks Bootstrap 5 dark mode). LibSass cannot evaluate it as a colour but passes
+// the `rgba(var(...), ...)` expression through to the output unchanged.
+$select-color-text: rgba($select-color-rgb, 0.83) !default;
 $select-color-highlight: rgba(255, 237, 40, 0.4) !default;
 $select-color-input: $input-bg !default;
 $select-color-input-full: $input-bg !default;
@@ -15,7 +18,7 @@ $select-color-input-error-focus: darken(
   10%
 ) !default;
 $select-color-disabled: $input-bg !default;
-$select-color-item: RGBA($select-color-rgb, 0.05) !default;
+$select-color-item: rgba($select-color-rgb, 0.05) !default;
 $select-color-item-border: $border-color !default;
 $select-color-item-active: $component-active-bg !default;
 $select-color-item-active-text: color-contrast($select-color-item-active) !default;
@@ -28,6 +31,9 @@ $select-color-dropdown-border-top: rgba($input-border-color, 0.8) !default;
 $select-color-dropdown-item-active: $dropdown-link-hover-bg !default;
 $select-color-dropdown-item-active-text: $dropdown-link-hover-color !default;
 $select-color-dropdown-item-create-active-text: $dropdown-link-hover-color !default;
+// Keep this var()-based (dark-mode aware): the base default is a static literal, so
+// Bootstrap 5 sets it here from its `var()` triplet to preserve the themed value.
+$select-color-dropdown-item-create-text: rgba($select-color-rgb, 0.5) !default;
 $select-opacity-disabled: 0.5 !default;
 $select-shadow-input: none !default;
 $select-shadow-input-focus: inset 0 1px 2px rgba(0, 0, 0, 0.15) !default;
@@ -51,7 +57,7 @@ $select-arrow-size: 5px !default;
 $select-arrow-color: $select-color-text !default;
 $select-arrow-offset: calc(#{$select-padding-x} + 5px) !default;
 
-@import "selectize";
+@import "tom-select";
 
 .ts-dropdown,
 .ts-dropdown.form-control {

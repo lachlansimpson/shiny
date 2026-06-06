@@ -5,8 +5,14 @@ $select-font-smoothing: inherit !default;
 $select-font-size: 13px !default;
 $select-line-height: 18px !default;
 
-$select-color-rgb: 0,0,0 !default;
-$select-color-text: RGBA($select-color-rgb, 0.83) !default;
+$select-color-rgb: 0, 0, 0 !default;
+// LibSass (the `sass` R package) cannot evaluate `rgba(<number-list>, $alpha)`, so
+// the base text colours are written as explicit `rgba(0, 0, 0, ...)` literals rather
+// than derived from the `$select-color-rgb` list. Themes that need a CSS-variable
+// triplet (e.g. Bootstrap 5 dark mode) override `$select-color-rgb` with a `var(...)`
+// and set these colours via `rgba($select-color-rgb, $alpha)`, which LibSass passes
+// through unevaluated.
+$select-color-text: rgba(0, 0, 0, 0.83) !default;
 $select-color-border: #d0d0d0 !default;
 $select-color-highlight: rgba(125, 168, 208, 0.2) !default;
 $select-color-input: #fff !default;
@@ -23,7 +29,7 @@ $select-color-dropdown-border: $select-color-border !default;
 $select-color-dropdown-border-top: #f0f0f0 !default;
 $select-color-dropdown-item-active: #f5fafd !default;
 $select-color-dropdown-item-active-text: #495c68 !default;
-$select-color-dropdown-item-create-text: RGBA($select-color-rgb, 0.5) !default;
+$select-color-dropdown-item-create-text: rgba(0, 0, 0, 0.5) !default;
 $select-color-dropdown-item-create-active-text: $select-color-dropdown-item-active-text !default;
 $select-color-optgroup: $select-color-dropdown !default;
 $select-color-optgroup-text: $select-color-text !default;
@@ -72,7 +78,6 @@ $select-spinner-border-color: $select-color-border;
 @import "plugins/optgroup_columns.scss";
 @import "plugins/remove_button.scss";
 @import "plugins/clear_button.scss";
-@import "plugins/auto_position.scss";
 
 .ts-wrapper {
   position: relative;

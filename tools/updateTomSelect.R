@@ -27,7 +27,7 @@ version  <- pkg_json$version
 message("tom-select version: ", version)
 
 # Copy the complete build (includes all plugins)
-dest_dir <- "inst/www/shared/selectize/js"
+dest_dir <- "inst/www/shared/tom-select/js"
 dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
 
 src  <- "node_modules/tom-select/dist/js/tom-select.complete.js"
@@ -54,20 +54,20 @@ run("npm", "run bundle_external_libs")
 # *raw* to apps that have no bslib theme (selectizeStaticDependency() in
 # R/input-select.R), so it must be valid, fully-compiled CSS.
 #
-# Compile selectize.bootstrap3.scss against bslib's full Bootstrap 3 bundle via
+# Compile tom-select.bootstrap3.scss against bslib's full Bootstrap 3 bundle via
 # sass::sass_partial() -- the same machinery the themed path uses at runtime --
 # so Bootstrap Sass functions (e.g. color-contrast()) are in scope and resolve.
 # A bare sass::sass() of the scss with only _variables/_mixins prepended leaves
 # those functions undefined; LibSass then passes them through as literal text,
 # producing CSS the browser silently drops.
-message("Regenerating css/selectize.bootstrap3.css...")
+message("Regenerating css/tom-select.bootstrap3.css...")
 css_header <- paste0(
   "/*! tom-select.js (https://tom-select.js.org), derived from selectize.js. ",
   "Apache-2.0 License. Bundled with Shiny; do not edit by hand -- regenerate ",
   "via tools/updateTomSelect.R. */\n"
 )
 css <- sass::sass_partial(
-  rules = sass::sass_file("inst/www/shared/selectize/scss/selectize.bootstrap3.scss"),
+  rules = sass::sass_file("inst/www/shared/tom-select/scss/tom-select.bootstrap3.scss"),
   bundle = bslib::bs_theme(version = 3),
   options = sass::sass_options(output_style = "compressed"),
   cache = FALSE
@@ -76,15 +76,15 @@ css <- sass::sass_partial(
 # Match only the uppercase RGB()/RGBA() (LibSass passthrough); compiled output
 # legitimately contains lowercase rgba().
 if (grepl("@use|@import|\\bmath\\.|color-contrast\\(|\\bRGBA?\\(", css)) {
-  stop("selectize.bootstrap3.css still contains uncompiled Sass tokens; ",
+  stop("tom-select.bootstrap3.css still contains uncompiled Sass tokens; ",
        "check the .scss sources for Dart-Sass-only constructs.")
 }
-writeLines(paste0(css_header, css), "inst/www/shared/selectize/css/selectize.bootstrap3.css")
-message("Updated css/selectize.bootstrap3.css (", nchar(css), " chars)")
+writeLines(paste0(css_header, css), "inst/www/shared/tom-select/css/tom-select.bootstrap3.css")
+message("Updated css/tom-select.bootstrap3.css (", nchar(css), " chars)")
 
 message("\nDone. Commit the following files:")
-message("  inst/www/shared/selectize/js/tom-select.complete.js")
-message("  inst/www/shared/selectize/js/tom-select.complete.min.js")
-message("  inst/www/shared/selectize/css/selectize.bootstrap3.css")
+message("  inst/www/shared/tom-select/js/tom-select.complete.js")
+message("  inst/www/shared/tom-select/js/tom-select.complete.min.js")
+message("  inst/www/shared/tom-select/css/tom-select.bootstrap3.css")
 message("  R/version_selectize.R")
 message("  package-lock.json")

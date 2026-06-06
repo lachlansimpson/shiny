@@ -262,10 +262,10 @@ selectizeDependencyFunc <- function(theme) {
   # DT/crosstalk (which still bundle selectize.js under a dependency named
   # "selectize") would make Shiny's tom-select win and silently drop their
   # selectize.js, breaking e.g. DT's column filters. A distinct name lets the
-  # two libraries coexist on the same page. The on-disk asset directory keeps
-  # its legacy "selectize" name only to avoid churn; it has no bearing on
-  # de-duplication, which is driven solely by the dependency `name` field.
-  selectizeDir <- system_file(package = "shiny", "www/shared/selectize/")
+  # two libraries coexist on the same page. The on-disk asset directory name
+  # ("tom-select") is independent of this; de-duplication is driven solely by
+  # the dependency `name` field.
+  selectizeDir <- system_file(package = "shiny", "www/shared/tom-select/")
   script <- file.path(selectizeDir, selectizeScripts())
 
   bslib::bs_dependency(
@@ -279,9 +279,9 @@ selectizeDependencyFunc <- function(theme) {
 }
 
 selectizeSass <- function(bs_version) {
-  selectizeDir <- system_file(package = "shiny", "www/shared/selectize/")
+  selectizeDir <- system_file(package = "shiny", "www/shared/tom-select/")
   stylesheet <- file.path(
-    selectizeDir, "scss", paste0("selectize.bootstrap", bs_version, ".scss")
+    selectizeDir, "scss", paste0("tom-select.bootstrap", bs_version, ".scss")
   )
   sass::sass_file(stylesheet)
 }
@@ -294,9 +294,9 @@ selectizeStaticDependency <- function(version) {
   htmlDependency(
     "tom-select",
     version,
-    src = "www/shared/selectize",
+    src = "www/shared/tom-select",
     package = "shiny",
-    stylesheet = "css/selectize.bootstrap3.css",
+    stylesheet = "css/tom-select.bootstrap3.css",
     script = selectizeScripts()
   )
 }

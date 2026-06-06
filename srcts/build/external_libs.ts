@@ -57,8 +57,8 @@ build({
 
 build({
   ...opts,
-  entryPoints: [outDir + "selectize/js/tom-select.complete.js"],
-  outfile: outDir + "selectize/js/tom-select.complete.min.js",
+  entryPoints: [outDir + "tom-select/js/tom-select.complete.js"],
+  outfile: outDir + "tom-select/js/tom-select.complete.min.js",
   minify: true,
   target: "es2020",
 });

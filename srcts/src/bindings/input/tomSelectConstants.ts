@@ -27,7 +27,7 @@ const selectizeCompatClasses = {
 // error. The select binding filters against this list before `new TomSelect()`
 // as defense in depth: the R side strips the obsolete `selectize-plugin-a11y`,
 // but plugins can also be injected client-side, so we guard here too. Keep this
-// in sync with `inst/www/shared/selectize/js/tom-select.complete.js`.
+// in sync with `inst/www/shared/tom-select/js/tom-select.complete.js`.
 const tomSelectBundledPlugins = [
   "caret_position",
   "change_listener",

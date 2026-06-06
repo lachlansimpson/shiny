@@ -160,23 +160,50 @@ test_that("version_selectize is the tom-select version (2.x)", {
 })
 
 test_that("static Bootstrap 3 fallback CSS is fully compiled (no uncompiled Sass)", {
-  # css/selectize.bootstrap3.css is served *raw* to apps without a bslib theme
+  # css/tom-select.bootstrap3.css is served *raw* to apps without a bslib theme
   # (selectizeStaticDependency()), so it must be valid, fully-compiled CSS.
   # Guard against a regression where the .scss source ships minified but
   # uncompiled. Uppercase RGB()/RGBA() are LibSass passthroughs of Dart-Sass-only
   # idioms; lowercase rgba() is legitimate compiled output and is allowed.
   css_path <- system.file(
-    "www/shared/selectize/css/selectize.bootstrap3.css", package = "shiny"
+    "www/shared/tom-select/css/tom-select.bootstrap3.css", package = "shiny"
   )
   expect_true(file.exists(css_path))
   css <- paste(readLines(css_path, warn = FALSE), collapse = "\n")
   expect_false(
     grepl("@use|@import|\\bmath\\.|color-contrast\\(|\\bRGBA?\\(", css),
-    info = "selectize.bootstrap3.css contains uncompiled Sass tokens"
+    info = "tom-select.bootstrap3.css contains uncompiled Sass tokens"
   )
 })
 
 test_that("non-bslib (theme = NULL) apps resolve to the static fallback CSS", {
   dep <- selectizeDependencyFunc(NULL)
-  expect_identical(dep$stylesheet, "css/selectize.bootstrap3.css")
+  expect_identical(dep$stylesheet, "css/tom-select.bootstrap3.css")
+})
+
+test_that("themed selectize SCSS (bs3/bs4/bs5) compiles with no uncompiled Sass tokens", {
+  # The bslib-themed Bootstrap 3/4/5 stylesheets are compiled at runtime via
+  # sass::sass_partial() (selectizeSass() supplies the rules). The styles are a
+  # hand-port of selectize.js and previously carried Dart-Sass-only idioms (e.g.
+  # uppercase RGBA() forced through LibSass as a literal) that leak into the output
+  # as tokens the browser silently drops. This guard compiles each theme the same
+  # way the runtime does and fails on any leftover uppercase RGB()/RGBA() or other
+  # uncompiled Sass -- extending the static BS3 guard above to all three themes.
+  skip_if_not_installed("bslib")
+  skip_if_not_installed("sass")
+  for (v in c(3, 4, 5)) {
+    css <- sass::sass_partial(
+      selectizeSass(v),
+      bundle = bslib::bs_theme(version = v),
+      options = sass::sass_options(output_style = "compressed"),
+      cache = FALSE
+    )
+    expect_false(
+      grepl("@use|@import|\\bmath\\.|color-contrast\\(|\\bRGBA?\\(", css),
+      info = paste0(
+        "tom-select.bootstrap", v,
+        " themed CSS contains uncompiled Sass tokens"
+      )
+    )
+  }
 })

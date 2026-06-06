@@ -74,9 +74,11 @@ To create a new patch:
 Shiny's `selectInput()` / `selectizeInput()` are powered by
 [tom-select](https://tom-select.js.org/), a jQuery-free fork of the now
 unmaintained selectize.js. The bundled library lives in
-`inst/www/shared/selectize/`. That directory keeps its legacy `selectize` name
-(and the htmltools dependency is still named `"selectize"`) so it continues to
-de-duplicate with DT, crosstalk, and other packages that bundle selectize.js.
+`inst/www/shared/tom-select/`. The htmltools dependency is named `"tom-select"`
+(a distinct name from the `"selectize"` dependency that DT, crosstalk, and other
+packages still register for selectize.js) so the two libraries coexist on the
+same page instead of one clobbering the other under htmltools' name-based
+de-duplication.
 
 ### Updating
 
@@ -84,24 +86,44 @@ de-duplicate with DT, crosstalk, and other packages that bundle selectize.js.
 1. Run `Rscript tools/updateTomSelect.R` from the repo root. The script:
    - runs `npm install`,
    - copies `tom-select.complete.js` (the build with all bundled plugins) into
-     `inst/www/shared/selectize/js/`,
+     `inst/www/shared/tom-select/js/`,
    - writes the detected version to `R/version_selectize.R`,
    - minifies the JS via `npm run bundle_external_libs`, and
    - regenerates the precompiled Bootstrap 3 fallback
-     `css/selectize.bootstrap3.css`.
+     `css/tom-select.bootstrap3.css`.
 1. Commit the files the script lists when it finishes.
 
 ### Customizing the styles
 
 There are no binary patches anymore (the selectize.js integration used to apply
 patches from `tools/selectize-patches`). The styles are maintained directly as
-Sass sources in `inst/www/shared/selectize/scss/`. Edit those `.scss` files,
+Sass sources in `inst/www/shared/tom-select/scss/`. Edit those `.scss` files,
 then re-run `tools/updateTomSelect.R` to regenerate the precompiled Bootstrap 3
 fallback CSS; the bslib-themed Bootstrap 4/5 styles are compiled at runtime.
 
 Keep the sources LibSass-compatible: the `sass` R package does not support Dart
 Sass features such as `@use` or case-insensitive `RGBA()`, so prefer plain
 `rgba()` and avoid module syntax.
+
+#### Why Shiny maintains its own stylesheet (and keeps Bootstrap 3)
+
+These `.scss` files are a hand-port of selectize.js's styles (classes renamed to
+`.ts-*`); they are deliberately **not** tom-select's own upstream SCSS
+(`node_modules/tom-select/dist/scss/`). Two reasons:
+
+- **Upstream SCSS is incompatible with Shiny's Sass compiler.** Upstream is
+  written in Dart Sass module syntax (`@use "sass:color"`, `color.adjust()`,
+  `math.round()`, `color-mix()`). Shiny and bslib compile SCSS through the `sass`
+  R package, which is LibSass (frozen since 2020, no module system) and errors on
+  `@use`. Adopting upstream would mean hand-porting it off Dart Sass anyway *and*
+  would change every widget's appearance to tom-select's default look. Keeping the
+  selectize-derived sources preserves the current appearance — the migration stays
+  a drop-in change.
+- **Bootstrap 3 is retained because Shiny still defaults to it.** A plain
+  `fluidPage()` with no `bslib::bs_theme()` renders Bootstrap 3 and is served the
+  static `css/tom-select.bootstrap3.css`. Upstream tom-select ships no Bootstrap 3
+  theme, so a BS3 theme is Shiny-maintained regardless. Dropping BS3 is a separate
+  product decision, not part of the library swap.
 
 ## Updating Shiny's [S]CSS
 
