@@ -256,20 +256,22 @@ selectizeDependencyFunc <- function(theme) {
 
   bs_version <- bslib::theme_version(theme)
 
-  # It'd be cleaner to ship the JS in a separate, href-based,
-  # HTML dependency (which we currently do for other themable widgets),
-  # but DT, crosstalk, and maybe other pkgs include selectize JS/CSS
-  # in HTML dependency named selectize, so if we were to change that
-  # name, the JS/CSS would be loaded/included twice, which leads to
-  # strange issues, especially since we now include a 3rd party
-  # accessibility plugin https://github.com/rstudio/shiny/pull/3153
+  # The JS and (themable) CSS ship together in this one dependency. We name it
+  # "tom-select", NOT "selectize": htmltools de-duplicates dependencies by name
+  # and keeps the highest version, so sharing the legacy "selectize" name with
+  # DT/crosstalk (which still bundle selectize.js under a dependency named
+  # "selectize") would make Shiny's tom-select win and silently drop their
+  # selectize.js, breaking e.g. DT's column filters. A distinct name lets the
+  # two libraries coexist on the same page. The on-disk asset directory keeps
+  # its legacy "selectize" name only to avoid churn; it has no bearing on
+  # de-duplication, which is driven solely by the dependency `name` field.
   selectizeDir <- system_file(package = "shiny", "www/shared/selectize/")
   script <- file.path(selectizeDir, selectizeScripts())
 
   bslib::bs_dependency(
     input = selectizeSass(bs_version),
     theme = theme,
-    name = "selectize",
+    name = "tom-select",
     version = version_selectize,
     cache_key_extra = get_package_version("shiny"),
     .dep_args = list(script = script)
@@ -285,8 +287,12 @@ selectizeSass <- function(bs_version) {
 }
 
 selectizeStaticDependency <- function(version) {
+  # Named "tom-select" (not "selectize") so it coexists with the selectize.js
+  # dependency that DT/crosstalk still register under the name "selectize",
+  # rather than clobbering it via htmltools' name-based de-duplication. See the
+  # note in selectizeDependencyFunc().
   htmlDependency(
-    "selectize",
+    "tom-select",
     version,
     src = "www/shared/selectize",
     package = "shiny",

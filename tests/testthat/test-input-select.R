@@ -40,7 +40,26 @@ test_that("jqueryui is NOT attached when drag_drop plugin is present (tom-select
   dep_names <- vapply(deps, `[[`, character(1), "name")
   expect_length(deps, 1)
   expect_false("jqueryui" %in% dep_names)
-  expect_true("selectize" %in% dep_names)
+  expect_true("tom-select" %in% dep_names)
+})
+
+test_that("the selectize dependency is named 'tom-select' so it coexists with DT/crosstalk selectize.js", {
+  # htmltools de-duplicates by name and keeps the highest version. If Shiny's
+  # tom-select dependency were named "selectize" (as DT/crosstalk's selectize.js
+  # dependency is), Shiny's newer version would clobber theirs and break e.g.
+  # DT's column filters. A distinct name lets both load on the same page.
+  static_dep <- selectizeStaticDependency(version_selectize)
+  expect_identical(static_dep$name, "tom-select")
+
+  # Simulate a page using both Shiny's selectInput and DT's selectize.js.
+  fake_dt <- htmltools::htmlDependency(
+    "selectize", "0.12.0", src = system.file(package = "shiny"),
+    all_files = FALSE
+  )
+  resolved <- htmltools::resolveDependencies(list(fake_dt, static_dep))
+  resolved_names <- vapply(resolved, `[[`, character(1), "name")
+  expect_true("selectize" %in% resolved_names)   # DT's selectize.js survives
+  expect_true("tom-select" %in% resolved_names)  # Shiny's tom-select survives
 })
 
 test_that("non-a11y plugins do not trigger the deprecation warning", {

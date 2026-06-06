@@ -4,6 +4,8 @@
 
 * `selectInput()` and `selectizeInput()` now use [tom-select](https://tom-select.js.org/) instead of the unmaintained selectize.js. tom-select is a modern, jQuery-free fork of selectize.js with built-in accessibility. Most apps will work without changes. If your app has custom CSS targeting `.selectize-control`, `.selectize-input`, `.selectize-dropdown`, or `.selectize-dropdown-content`, those selectors will continue to work via backwards-compatibility aliases — but please migrate to the new `.ts-wrapper`, `.ts-control`, `.ts-dropdown`, and `.ts-dropdown-content` class names, as the aliases will be removed in a future major version. The `drag_drop` plugin no longer requires jQuery UI. The `selectize-plugin-a11y` plugin name is no longer needed (tom-select has built-in ARIA accessibility); if passed it is dropped with a one-time deprecation warning, and any other unrecognized plugin name is ignored with a console warning client-side rather than producing an opaque error. (#4227, #4330)
 
+* The HTML dependency for `selectInput()`/`selectizeInput()` is now named `"tom-select"` (previously `"selectize"`). This lets Shiny's tom-select load alongside the selectize.js that DT and crosstalk still bundle (under a dependency named `"selectize"`), instead of htmltools de-duplication — which keeps only the highest version of a given dependency name — silently dropping one of them and, for example, breaking DT's column filters. If you relied on `htmltools::suppressDependencies("selectize")` to suppress Shiny's dependency, use `"tom-select"` instead. (#4227, #4330)
+
 ## New features
 
 * `session$destroy()` and `session$onDestroy()` are now available on
