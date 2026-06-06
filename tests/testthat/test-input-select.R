@@ -131,6 +131,22 @@ test_that("selectInputUI has a select at an expected location", {
 
 # --- tom-select migration tests ---
 
+# Fail if `css` still contains uncompiled Sass. The tom-select stylesheets are a
+# hand-port of selectize.js that previously carried Dart-Sass-only idioms (e.g.
+# uppercase RGBA() forced through LibSass as a literal) which leak into output as
+# tokens the browser silently drops. Uppercase RGB()/RGBA() are LibSass
+# passthroughs of those idioms; lowercase rgba() is legitimate compiled output
+# and is allowed. Shared by the static BS3 guard and the themed bs3/4/5 guard so
+# the two can't drift apart.
+expect_no_uncompiled_sass <- function(css, label = "CSS") {
+  uncompiled <- "@use|@import|\\bmath\\.|color-contrast\\(|\\bRGBA?\\("
+  expect(
+    !grepl(uncompiled, css),
+    sprintf("%s contains uncompiled Sass tokens", label)
+  )
+  invisible(css)
+}
+
 test_that("selectize-plugin-a11y is stripped (with a warning) but co-listed plugins survive", {
   # The warning uses .frequency = "once", so reset rlang's per-session cache to
   # keep this assertion deterministic regardless of whether an earlier test (or
@@ -141,8 +157,10 @@ test_that("selectize-plugin-a11y is stripped (with a warning) but co-listed plug
                         options = list(plugins = list("selectize-plugin-a11y", "remove_button"))),
     class = "shiny_deprecated_a11y_plugin"
   )
-  # The script tag is the second child of the inner div (after the select element)
-  script_tag <- x$children[[2]]$children[[2]]
+  # Find the JSON config tag by what it is (a <script>) rather than by walking a
+  # fixed child-index path, so the test survives changes to the surrounding tag
+  # structure as long as the config is still emitted.
+  script_tag <- htmltools::tagQuery(x)$find("script")$selectedTags()[[1]]
   json <- jsonlite::fromJSON(as.character(script_tag$children[[1]]))
   plugins <- unlist(json$plugins)
   expect_false("selectize-plugin-a11y" %in% plugins)
@@ -163,17 +181,13 @@ test_that("static Bootstrap 3 fallback CSS is fully compiled (no uncompiled Sass
   # css/tom-select.bootstrap3.css is served *raw* to apps without a bslib theme
   # (selectizeStaticDependency()), so it must be valid, fully-compiled CSS.
   # Guard against a regression where the .scss source ships minified but
-  # uncompiled. Uppercase RGB()/RGBA() are LibSass passthroughs of Dart-Sass-only
-  # idioms; lowercase rgba() is legitimate compiled output and is allowed.
+  # uncompiled.
   css_path <- system.file(
     "www/shared/tom-select/css/tom-select.bootstrap3.css", package = "shiny"
   )
   expect_true(file.exists(css_path))
   css <- paste(readLines(css_path, warn = FALSE), collapse = "\n")
-  expect_false(
-    grepl("@use|@import|\\bmath\\.|color-contrast\\(|\\bRGBA?\\(", css),
-    info = "tom-select.bootstrap3.css contains uncompiled Sass tokens"
-  )
+  expect_no_uncompiled_sass(css, "tom-select.bootstrap3.css")
 })
 
 test_that("non-bslib (theme = NULL) apps resolve to the static fallback CSS", {
@@ -183,12 +197,9 @@ test_that("non-bslib (theme = NULL) apps resolve to the static fallback CSS", {
 
 test_that("themed selectize SCSS (bs3/bs4/bs5) compiles with no uncompiled Sass tokens", {
   # The bslib-themed Bootstrap 3/4/5 stylesheets are compiled at runtime via
-  # sass::sass_partial() (selectizeSass() supplies the rules). The styles are a
-  # hand-port of selectize.js and previously carried Dart-Sass-only idioms (e.g.
-  # uppercase RGBA() forced through LibSass as a literal) that leak into the output
-  # as tokens the browser silently drops. This guard compiles each theme the same
-  # way the runtime does and fails on any leftover uppercase RGB()/RGBA() or other
-  # uncompiled Sass -- extending the static BS3 guard above to all three themes.
+  # sass::sass_partial() (selectizeSass() supplies the rules). This guard compiles
+  # each theme the same way the runtime does -- extending the static BS3 guard
+  # above to all three themes. The info label identifies which theme failed.
   skip_if_not_installed("bslib")
   skip_if_not_installed("sass")
   for (v in c(3, 4, 5)) {
@@ -198,12 +209,6 @@ test_that("themed selectize SCSS (bs3/bs4/bs5) compiles with no uncompiled Sass 
       options = sass::sass_options(output_style = "compressed"),
       cache = FALSE
     )
-    expect_false(
-      grepl("@use|@import|\\bmath\\.|color-contrast\\(|\\bRGBA?\\(", css),
-      info = paste0(
-        "tom-select.bootstrap", v,
-        " themed CSS contains uncompiled Sass tokens"
-      )
-    )
+    expect_no_uncompiled_sass(css, paste0("tom-select.bootstrap", v, " themed CSS"))
   }
 })
